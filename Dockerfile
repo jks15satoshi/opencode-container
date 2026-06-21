@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.17.8
+ARG OPENCODE_VERSION=1.17.9
 ARG OPENCODE_SHA256=39d62fa6e22a3ccfedc054179525938d36c1ff111944f8fa7344c1c6df3fa3be
 
 # ============================================
