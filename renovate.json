@@ -6,8 +6,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Dockerfile$"
+      "managerFilePatterns": [
+        "/^Dockerfile$/"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>npm) depName=(?<depName>opencode-ai)\\s+ARG OPENCODE_VERSION=(?<currentValue>[^\\s]+)"
@@ -15,8 +15,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Dockerfile$"
+      "managerFilePatterns": [
+        "/^Dockerfile$/"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>npm) depName=(?<depName>@openchamber/web)\\s+ARG OPENCHAMBER_VERSION=(?<currentValue>[^\\s]+)"
