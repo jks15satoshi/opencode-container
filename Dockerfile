@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.17.9
-ARG OPENCODE_SHA256=39d62fa6e22a3ccfedc054179525938d36c1ff111944f8fa7344c1c6df3fa3be
+ARG OPENCODE_SHA256=c943d8f0bde6192f0b8744a0cf9388b4d3d417bec010707da45d50dac960a369
 
 # ============================================
 # Stage: OpenCode
