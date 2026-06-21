@@ -1,0 +1,8 @@
+.git/
+.github/
+docs/
+AGENTS.md
+README.md
+LICENSE
+renovate.json
+.cspell.json

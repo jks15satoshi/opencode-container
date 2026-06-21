@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Dockerfile$"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>opencode-ai)\\s+ARG OPENCODE_VERSION=(?<currentValue>[^\\s]+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Dockerfile$"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>@openchamber/web)\\s+ARG OPENCHAMBER_VERSION=(?<currentValue>[^\\s]+)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": [
+        "opencode-ai"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "opencode"
+      ]
+    },
+    {
+      "matchDepNames": [
+        "@openchamber/web"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "openchamber"
+      ]
+    }
+  ]
+}

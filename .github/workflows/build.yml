@@ -1,0 +1,168 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      opencode_changed: ${{ steps.detect.outputs.opencode_changed }}
+      opencode_new: ${{ steps.detect.outputs.opencode_new }}
+      openchamber_changed: ${{ steps.detect.outputs.openchamber_changed }}
+      openchamber_new: ${{ steps.detect.outputs.openchamber_new }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect version changes and check tags
+        id: detect
+        run: |
+          NEW_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p' Dockerfile)
+          NEW_CHAMBER=$(sed -n 's/^ARG OPENCHAMBER_VERSION=\(.*\)/\1/p' Dockerfile)
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Trigger: workflow_dispatch, building both targets"
+            echo "opencode_changed=true" >> "$GITHUB_OUTPUT"
+            echo "opencode_new=${NEW_OPENCODE}" >> "$GITHUB_OUTPUT"
+            echo "openchamber_changed=true" >> "$GITHUB_OUTPUT"
+            echo "openchamber_new=${NEW_CHAMBER}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "OPENCODE version: ${NEW_OPENCODE}"
+          echo "OPENCHAMBER version: ${NEW_CHAMBER}"
+
+          OPENCODE_CHANGED="false"
+          if [ -n "$NEW_OPENCODE" ]; then
+            TAG="opencode/v${NEW_OPENCODE}"
+            if git rev-parse "$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists, skipping opencode"
+            else
+              OPENCODE_CHANGED="true"
+            fi
+          fi
+
+          CHAMBER_CHANGED="false"
+          if [ -n "$NEW_CHAMBER" ]; then
+            TAG="openchamber/v${NEW_CHAMBER}"
+            if git rev-parse "$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists, skipping openchamber"
+            else
+              CHAMBER_CHANGED="true"
+            fi
+          fi
+
+          echo "opencode_changed=${OPENCODE_CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "opencode_new=${NEW_OPENCODE}" >> "$GITHUB_OUTPUT"
+          echo "openchamber_changed=${CHAMBER_CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "openchamber_new=${NEW_CHAMBER}" >> "$GITHUB_OUTPUT"
+
+          echo "Results: opencode=${OPENCODE_CHANGED}, openchamber=${CHAMBER_CHANGED}"
+
+  # ============================================================
+  # Build OpenCode
+  # ============================================================
+  build-opencode:
+    needs: detect
+    if: needs.detect.outputs.opencode_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: opencode
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/opencode:${{ needs.detect.outputs.opencode_new }}
+            ghcr.io/${{ github.repository_owner }}/opencode:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create and push tag
+        env:
+          NEW_VER: ${{ needs.detect.outputs.opencode_new }}
+        run: |
+          set -euo pipefail
+
+          TAG="opencode/v${NEW_VER}"
+
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Pushed tag: $TAG"
+
+  # ============================================================
+  # Build OpenChamber
+  # ============================================================
+  build-openchamber:
+    needs: detect
+    if: needs.detect.outputs.openchamber_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: openchamber
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/openchamber:${{ needs.detect.outputs.openchamber_new }}
+            ghcr.io/${{ github.repository_owner }}/openchamber:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create and push tag
+        env:
+          NEW_VER: ${{ needs.detect.outputs.openchamber_new }}
+        run: |
+          set -euo pipefail
+
+          TAG="openchamber/v${NEW_VER}"
+
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Pushed tag: $TAG"
