@@ -91,6 +91,7 @@ APP_HOME="/home/${APP_USER}"
 echo "[*] Fixing ownership of home directory and workspace" >&2
 chown -R "${TARGET_UID}:${TARGET_GID}" "$APP_HOME" 2>/dev/null || true
 chown "${TARGET_UID}:${TARGET_GID}" /workspace 2>/dev/null || true
+chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
 
 ln -sf /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 
@@ -99,7 +100,7 @@ ln -sf /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 # ===============================================
 
 echo "[*] Checking mise tools (no config → no-op)..." >&2
-gosu "$APP_USER" mise install 2>&1 || true
+gosu "$APP_USER" mise install 2>/dev/null || echo "[!] mise install skipped (no config or failed)" >&2
 
 # ===============================================
 # Execute command as user

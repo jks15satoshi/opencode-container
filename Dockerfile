@@ -77,9 +77,9 @@ RUN set -eux; \
 RUN userdel -r node && \
     groupadd -g 1000 opencode && \
     useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
-    mkdir -p /workspace && \
+    mkdir -p /workspace /mise && \
     ln -s /workspace /home/opencode/workspace && \
-    chown -R 1000:1000 /workspace /home/opencode
+    chown -R 1000:1000 /workspace /mise /home/opencode
 
 # Runtime entrypoint
 COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -124,9 +124,9 @@ RUN set -eux; \
 RUN userdel -r node && \
     groupadd -g 1000 openchamber && \
     useradd -m -u 1000 -g 1000 -s /bin/bash openchamber && \
-    mkdir -p /workspace && \
+    mkdir -p /workspace /mise && \
     ln -s /workspace /home/openchamber/workspace && \
-    chown -R 1000:1000 /workspace /home/openchamber
+    chown -R 1000:1000 /workspace /mise /home/openchamber
 
 # Runtime entrypoint
 COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
