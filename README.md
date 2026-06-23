@@ -30,6 +30,9 @@ Images are built on `node:26-trixie-slim` and include common shell tools (such a
 
 Images run as a non-root user by default (`opencode` or `openchamber`, depending on the deployed image), with default UID and GID of 1000. At startup, the container will automatically detect the mounted workspace directory permissions and adjust the UID/GID to match the directory owner, avoiding permission issues.
 
+> [!NOTE]
+> The image is built as root and drops privileges to a non-root user at runtime. This means if you `docker exec` into the container or run commands inside it, you will be operating as root.
+
 ## Quick Start
 
 **OpenCode**
@@ -252,24 +255,24 @@ OpenCode / OpenChamber images support configuration through environment variable
 
 **OpenCode**
 
-| Environment Variable       | Description                                                        | Default    |
-| -------------------------- | ------------------------------------------------------------------ | ---------- |
+| Environment Variable       | Description                                                                                 | Default    |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ---------- |
 | `OPENCODE_SERVER_PASSWORD` | Sets the basic auth password for accessing OpenCode. Allows passwordless access when empty. |            |
-| `OPENCODE_SERVER_USERNAME` | Sets the basic auth username for accessing OpenCode.              | `opencode` |
+| `OPENCODE_SERVER_USERNAME` | Sets the basic auth username for accessing OpenCode.                                        | `opencode` |
 
 **OpenChamber**
 
-| Environment Variable                    | Description                                                                                                                                | Default   |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| Environment Variable                    | Description                                                                                                                                                     | Default   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | `OPENCHAMBER_UI_PASSWORD`               | Sets the basic auth password for accessing the OpenChamber web interface.<br/> Cannot be empty unless `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` is set to `true`. |           |
-| `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` | Allows unauthenticated LAN access to the OpenChamber web interface.<br/> **Recommended only in trusted network environments.**            | `false`   |
-| `OPENCODE_SKIP_START`                   | Skips starting the built-in OpenCode instance in OpenChamber, connecting to an external OpenCode server instead. Requires `OPENCODE_HOST` to be set as well. | `false`   |
-| `OPENCODE_HOST`                         | Specifies the address of an external OpenCode server (e.g., `http://opencode:4096`).                                                       |           |
+| `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` | Allows unauthenticated LAN access to the OpenChamber web interface.<br/> **Recommended only in trusted network environments.**                                  | `false`   |
+| `OPENCODE_SKIP_START`                   | Skips starting the built-in OpenCode instance in OpenChamber, connecting to an external OpenCode server instead. Requires `OPENCODE_HOST` to be set as well.    | `false`   |
+| `OPENCODE_HOST`                         | Specifies the address of an external OpenCode server (e.g., `http://opencode:4096`).                                                                            |           |
 
 The following environment variables are not upstream-supported configuration options but are image-side features and apply to all images:
 
-| Environment Variable | Description                                                   | Default |
-|----------------------|---------------------------------------------------------------|---------|
+| Environment Variable | Description                                                        | Default |
+|----------------------|--------------------------------------------------------------------|---------|
 | `PUID`               | Sets the UID of the container user to match host user permissions. | `1000`  |
 | `PGID`               | Sets the GID of the container user to match host user permissions. | `1000`  |
 
@@ -277,20 +280,22 @@ The following environment variables are not upstream-supported configuration opt
 
 **OpenCode**
 
-| Path                                   | Description                                                |
-| -------------------------------------- | ---------------------------------------------------------- |
-| `/home/opencode/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.       |
-| `/home/opencode/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs. |
+| Path                                   | Description                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home/opencode/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.                                                                  |
+| `/home/opencode/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.                                                            |
+| `/mise`                                | Mise data directory. Stores Mise config and installed development tools. <br/> See [Managing Development Tools](#managing-development-tools). |
 
 **OpenChamber**
 
-| Path                                      | Description                                                                                                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/home/openchamber/.config/openchamber`   | OpenChamber configuration directory. Stores user configuration info, session data, Git credential config, logs, etc.                                        |
-| `/home/openchamber/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.<br/> Only needs to be mounted in standalone deployment.                       |
-| `/home/openchamber/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.<br/> Only needs to be mounted in standalone deployment.                 |
-| `/home/openchamber/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key when using Git operations in OpenChamber with SSH authentication.     |
+| Path                                      | Description                                                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home/openchamber/.config/openchamber`   | OpenChamber configuration directory. Stores user configuration info, session data, Git credential config, logs, etc.                                                                  |
+| `/home/openchamber/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.<br/> Only needs to be mounted in standalone deployment.                                                  |
+| `/home/openchamber/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.<br/> Only needs to be mounted in standalone deployment.                                            |
+| `/home/openchamber/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key when using Git operations in OpenChamber with SSH authentication.                |
 | `/home/openchamber/.git-credentials`      | Git credentials file. Used for HTTPS authentication in Git operations.<br/> Mount your Git credentials file when using Git operations in OpenChamber with token-based authentication. |
+| `/mise`                                   | Mise data directory. Stores Mise config and installed development tools. <br/> See [Managing Development Tools](#managing-development-tools).                                         |
 
 ### Workspace Directory and Permissions
 
@@ -305,6 +310,46 @@ As mentioned in the [Image Overview](#image-overview) section, at startup the im
 3. Otherwise, the default UID and GID (1000:1000) are used.
 
 Each image also creates a symbolic link `~/workspace` pointing to `/workspace` for convenient access within the container.
+
+### Managing Development Tools
+
+Both the OpenCode and OpenChamber images include [mise](https://mise.en.dev) for managing language
+runtimes and dev tools. You can declare the tools you need by mounting a
+config file at `/mise/config.toml`.
+
+For example, a Python 3.12 w/ uv + Node.js 26 w/ PNPM environment:
+
+```toml
+[tools]
+python = "3.12"
+uv     = "latest"
+node   = "26"
+
+[hooks]
+postinstall = 'npx corepack enable'
+
+[settings]
+experimental        = true
+python.uv_venv_auto = true
+
+[env]
+_.path = ['{{config_root}}/node_modules/.bin']
+
+[tasks.pnpm-install]
+description = 'Installs dependencies with pnpm'
+run         = 'pnpm install'
+sources     = ['package.json', 'pnpm-lock.yaml', 'mise.toml']
+outputs     = ['node_modules/.pnpm/lock.yaml']
+
+[tasks.dev]
+description = 'Calls your dev script in `package.json`'
+run         = 'node --run dev'
+depends     = ['pnpm-install']
+```
+
+At startup the entrypoint detects `config.toml` in the mise data directory and installs
+the declared tools. See the [mise documentation](https://mise.en.dev) for full
+configuration options.
 
 ### Connecting LLM Model Providers
 
