@@ -313,7 +313,7 @@ OpenCode 和 OpenChamber 镜像都预留了 `/workspace` 目录用于挂载你�
 
 ### 管理开发工具
 
-OpenCode 和 OpenChamber 镜像都集成了 Mise，用于管理语言运行时和开发工具，你可以根据你的开发需求，通过挂载配置文件 `/mise/config.toml` 来指定需要安装的工具和版本。
+OpenCode 和 OpenChamber 镜像都集成了 [Mise](https://mise.en.dev)，用于管理语言运行时和开发工具，你可以根据你的开发需求，通过挂载配置文件 `/mise/config.toml` 来指定需要安装的工具和版本。
 
 例如，如果你需要一个 Python 3.12 w/ uv + Node.js 26 w/ PNPM 的开发环境，可以创建一个 `config.toml` 文件如下：
 
@@ -347,7 +347,7 @@ depends = ['pnpm-install']
 
 镜像启动时会自动检测 `/mise/config.toml` 文件，并根据配置安装所需的工具和版本。
 
-具体的 Mise 配置选项和使用方法，请参阅 [Mise 官方文档](https://mise.jdx.dev/getting-started.html)。
+具体的 Mise 配置选项和使用方法，请参阅 [Mise 官方文档](https://mise.en.dev/getting-started.html)。
 
 ### 接入 LLM 模型供应商
 

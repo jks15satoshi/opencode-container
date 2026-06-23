@@ -348,7 +348,7 @@ depends     = ['pnpm-install']
 ```
 
 At startup the entrypoint detects `config.toml` in the mise data directory and installs
-the declared tools. See the [mise documentation](https://mise.en.dev) for full
+the declared tools. See the [mise documentation](https://mise.en.dev/getting-started.html) for full
 configuration options.
 
 ### Connecting LLM Model Providers
