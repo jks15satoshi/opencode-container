@@ -30,6 +30,9 @@
 
 镜像默认运行一个非 root 用户（`opencode` 或 `openchamber`，取决于部署镜像），UID 和 GID 默认均为 1000，但启动时会根据挂载的工作区目录权限自动调整为匹配该目录的所有者，以避免权限问题。
 
+> [!NOTE]
+> 镜像在构建期以 root 用户运行，在运行时通过临时降权为非 root 用户运行 OpenCode / OpenChamber，这意味着如果你通过 `docker exec` 进入容器或在容器内执行命令时，会以 root 用户身份运行。
+
 ## 快速开始
 
 **OpenCode**
@@ -277,10 +280,11 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 
 **OpenCode**
 
-| 路径                                   | 说明                                                  |
-| -------------------------------------- | ----------------------------------------------------- |
-| `/home/opencode/.config/opencode`      | OpenCode 配置目录。存放用户配置文件与插件文件。       |
-| `/home/opencode/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。 |
+| 路径                                   | 说明                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `/home/opencode/.config/opencode`      | OpenCode 配置目录。存放用户配置文件与插件文件。                                          |
+| `/home/opencode/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。                                    |
+| `/mise`                                | Mise 数据目录。存放 Mise 配置和安装的开发工具。<br/> 详见[管理开发工具](#管理开发工具)。 |
 
 **OpenChamber**
 
@@ -291,6 +295,7 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 | `/home/openchamber/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。<br/> 仅单独部署时需要挂载。                                                                   |
 | `/home/openchamber/.ssh/id_ed25519`       | SSH 私钥文件。用于 Git 操作的 SSH 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 SSH 时，需要挂载你的 SSH 私钥文件。     |
 | `/home/openchamber/.git-credentials`      | Git 凭证文件。用于 Git 操作的 HTTPS 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 token 时，需要挂载你的 Git 凭证文件。 |
+| `/mise`                                   | Mise 数据目录。存放 Mise 配置和安装的开发工具。<br/> 详见[管理开发工具](#管理开发工具)。                                                            |
 
 ### 工作区目录与权限
 
@@ -305,6 +310,44 @@ OpenCode 和 OpenChamber 镜像都预留了 `/workspace` 目录用于挂载你�
 3. 否则，使用默认的 UID 和 GID（1000:1000）。
 
 每个镜像也同时创建了指向 `/workspace` 的符号链接 `~/workspace`，方便在容器中访问。
+
+### 管理开发工具
+
+OpenCode 和 OpenChamber 镜像都集成了 [Mise](https://mise.en.dev)，用于管理语言运行时和开发工具，你可以根据你的开发需求，通过挂载配置文件 `/mise/config.toml` 来指定需要安装的工具和版本。
+
+例如，如果你需要一个 Python 3.12 w/ uv + Node.js 26 w/ PNPM 的开发环境，可以创建一个 `config.toml` 文件如下：
+
+```toml
+[tools]
+python = "3.12"
+uv = "latest"
+node = "26"
+
+[hooks]
+postinstall = 'npx corepack enable'
+
+[settings]
+experimental = true
+python.uv_venv_auto = true
+
+[env]
+_.path = ['{{config_root}}/node_modules/.bin']
+
+[tasks.pnpm-install]
+description = 'Installs dependencies with pnpm'
+run = 'pnpm install'
+sources = ['package.json', 'pnpm-lock.yaml', 'mise.toml']
+outputs = ['node_modules/.pnpm/lock.yaml']
+
+[tasks.dev]
+description = 'Calls your dev script in `package.json`'
+run = 'node --run dev'
+depends = ['pnpm-install']
+```
+
+镜像启动时会自动检测 `/mise/config.toml` 文件，并根据配置安装所需的工具和版本。
+
+具体的 Mise 配置选项和使用方法，请参阅 [Mise 官方文档](https://mise.en.dev/getting-started.html)。
 
 ### 接入 LLM 模型供应商
 

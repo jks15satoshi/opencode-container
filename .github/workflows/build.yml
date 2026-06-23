@@ -27,47 +27,89 @@ jobs:
       - name: Detect version changes and check tags
         id: detect
         run: |
-          NEW_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p' Dockerfile)
-          NEW_CHAMBER=$(sed -n 's/^ARG OPENCHAMBER_VERSION=\(.*\)/\1/p' Dockerfile)
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Trigger: workflow_dispatch, building both targets"
-            echo "opencode_changed=true" >> "$GITHUB_OUTPUT"
-            echo "opencode_new=${NEW_OPENCODE}" >> "$GITHUB_OUTPUT"
-            echo "openchamber_changed=true" >> "$GITHUB_OUTPUT"
-            echo "openchamber_new=${NEW_CHAMBER}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          NEW_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p;q' Dockerfile)
+          NEW_CHAMBER=$(sed -n 's/^ARG OPENCHAMBER_VERSION=\(.*\)/\1/p;q' Dockerfile)
 
           echo "OPENCODE version: ${NEW_OPENCODE}"
           echo "OPENCHAMBER version: ${NEW_CHAMBER}"
 
-          OPENCODE_CHANGED="false"
-          if [ -n "$NEW_OPENCODE" ]; then
-            TAG="opencode/v${NEW_OPENCODE}"
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
-              echo "Tag $TAG already exists, skipping opencode"
+          # Detect if image definition files (Dockerfile / entrypoint.sh) changed
+          FILES_CHANGED="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FILES_CHANGED="true"
+            echo "Trigger: workflow_dispatch (building both targets with rev logic)"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
+              ! git diff --quiet "$BEFORE" "$AFTER" -- Dockerfile entrypoint.sh 2>/dev/null; then
+              FILES_CHANGED="true"
+              echo "Image definition files (Dockerfile/entrypoint.sh) changed"
             else
+              echo "No image definition file changes detected"
+            fi
+          fi
+
+          # --- opencode ---
+          OPENCODE_CHANGED="false"
+          OPENCODE_OUT="$NEW_OPENCODE"
+          if [ -n "$NEW_OPENCODE" ]; then
+            BASE_TAG="opencode/v${NEW_OPENCODE}"
+            if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
+              echo "Base tag $BASE_TAG exists (version unchanged)"
+              if [ "$FILES_CHANGED" = "true" ]; then
+                LATEST_REV=$(git tag -l "${BASE_TAG}-rev.*" | sort -V | tail -1)
+                if [ -z "$LATEST_REV" ]; then
+                  NEXT_REV=1
+                else
+                  REV_NUM=$(echo "$LATEST_REV" | sed 's/.*-rev\.//')
+                  NEXT_REV=$((REV_NUM + 1))
+                fi
+                OPENCODE_OUT="${NEW_OPENCODE}-rev.${NEXT_REV}"
+                OPENCODE_CHANGED="true"
+                echo "Building opencode rev: ${OPENCODE_OUT}"
+              else
+                echo "No file changes, skipping opencode"
+              fi
+            else
+              echo "Base tag $BASE_TAG not found, building new version"
               OPENCODE_CHANGED="true"
             fi
           fi
 
+          # --- openchamber ---
           CHAMBER_CHANGED="false"
+          CHAMBER_OUT="$NEW_CHAMBER"
           if [ -n "$NEW_CHAMBER" ]; then
-            TAG="openchamber/v${NEW_CHAMBER}"
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
-              echo "Tag $TAG already exists, skipping openchamber"
+            BASE_TAG="openchamber/v${NEW_CHAMBER}"
+            if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
+              echo "Base tag $BASE_TAG exists (version unchanged)"
+              if [ "$FILES_CHANGED" = "true" ]; then
+                LATEST_REV=$(git tag -l "${BASE_TAG}-rev.*" | sort -V | tail -1)
+                if [ -z "$LATEST_REV" ]; then
+                  NEXT_REV=1
+                else
+                  REV_NUM=$(echo "$LATEST_REV" | sed 's/.*-rev\.//')
+                  NEXT_REV=$((REV_NUM + 1))
+                fi
+                CHAMBER_OUT="${NEW_CHAMBER}-rev.${NEXT_REV}"
+                CHAMBER_CHANGED="true"
+                echo "Building openchamber rev: ${CHAMBER_OUT}"
+              else
+                echo "No file changes, skipping openchamber"
+              fi
             else
+              echo "Base tag $BASE_TAG not found, building new version"
               CHAMBER_CHANGED="true"
             fi
           fi
 
           echo "opencode_changed=${OPENCODE_CHANGED}" >> "$GITHUB_OUTPUT"
-          echo "opencode_new=${NEW_OPENCODE}" >> "$GITHUB_OUTPUT"
+          echo "opencode_new=${OPENCODE_OUT}" >> "$GITHUB_OUTPUT"
           echo "openchamber_changed=${CHAMBER_CHANGED}" >> "$GITHUB_OUTPUT"
-          echo "openchamber_new=${NEW_CHAMBER}" >> "$GITHUB_OUTPUT"
+          echo "openchamber_new=${CHAMBER_OUT}" >> "$GITHUB_OUTPUT"
 
-          echo "Results: opencode=${OPENCODE_CHANGED}, openchamber=${CHAMBER_CHANGED}"
+          echo "Results: opencode=${OPENCODE_CHANGED} (${OPENCODE_OUT}), openchamber=${CHAMBER_CHANGED} (${CHAMBER_OUT})"
 
   # ============================================================
   # Build OpenCode
