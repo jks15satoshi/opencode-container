@@ -20,10 +20,11 @@ print_header() {
 
     local label="${title} Container"
     local pad=$(((44 - ${#label}) / 2))
+    local extra=$(((44 - ${#label}) % 2))
 
     echo ""
     echo "╔══════════════════════════════════════════════╗"
-    printf "║ %*s%s%*s ║\n" "$pad" "" "$label" "$pad" ""
+    printf "║ %*s%s%*s ║\n" "$pad" "" "$label" "$((pad + extra))" ""
     echo "╚══════════════════════════════════════════════╝"
     echo ""
     echo "[*] ${title} version: $(${user} --version 2>&1 | head -1)" >&2
