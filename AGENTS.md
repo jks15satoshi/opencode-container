@@ -15,9 +15,9 @@ Docker packaging for **OpenCode** and **OpenChamber** via a single multi-stage `
 | `.github/scripts/update-checksums.sh` | Fetches npm tarballs, computes SHA-256, updates Dockerfile ARGs |
 | `renovate.json` | Two standalone regex `customManagers` for version bump PRs |
 | `.dockerignore` | Excludes .git, .github, docs, AGENTS.md, README.md, LICENSE, renovate.json, .cspell.json |
-| `docs/` | Empty — no generated or manual docs |
+| `docs/` | Contains `README.zh-CN.md` (Chinese localization) |
 
-`README.md` is empty; `AGENTS.md` is the sole documentation.
+`README.md` contains user-facing deployment docs + compose examples. `docs/README.zh-CN.md` is the Chinese localization. `AGENTS.md` is for agent-level build/CI guidance.
 
 ## Build commands
 
@@ -32,6 +32,8 @@ docker build --target openchamber -t openchamber:latest .
 docker buildx build --platform linux/amd64,linux/arm64 --target opencode -t opencode:latest .
 docker buildx build --platform linux/amd64,linux/arm64 --target openchamber -t openchamber:latest .
 ```
+
+Published images: `ghcr.io/jks15satoshi/opencode` and `ghcr.io/jks15satoshi/openchamber` (both amd64 + arm64).
 
 Build args for version pinning:
 
@@ -65,7 +67,7 @@ Each creates an independent PR with `platformAutomerge: true`.
 
 ## CI pipelines
 
-- **`build.yml`**: Runs on push to `master` (and `workflow_dispatch`). Builds a target only when its corresponding `opencode/v{ver}` / `openchamber/v{ver}` git tag does not yet exist (no version-diff required). Builds with `docker buildx` for `linux/amd64,linux/arm64`, pushes to `ghcr.io`. Creates `opencode/v{ver}` or `openchamber/v{ver}` tag + GitHub Release with notes auto-generated via `.github/release.yml` plus an `Upstream Release` section linking to upstream project releases.
+- **`build.yml`**: Runs on push to `master` (and `workflow_dispatch`). Builds a target only when its corresponding `opencode/v{ver}` / `openchamber/v{ver}` git tag does not yet exist (no version-diff required). Builds with `docker buildx` for `linux/amd64,linux/arm64`, pushes to `ghcr.io`. Creates `opencode/v{ver}` or `openchamber/v{ver}` tag + GitHub Release with notes auto-generated via `.github/release.yml` plus an `Upstream Release` section linking to upstream project releases. **The `detect` job parses version ARGs from the Dockerfile with `sed` — changing the ARG format/position will break CI.**
 - **`update-checksums.yml`**: Runs only when `github.actor == 'renovate[bot]'`.
 
 ## Runtime security model
@@ -88,7 +90,7 @@ Builds as **root**, drops privileges via `gosu` at runtime:
 
 - **Default CMD**: `openchamber serve --foreground --port 3000 --host 0.0.0.0`
 - **Internal OpenCode**: starts/manages an internal OpenCode server by default; set `OPENCODE_HOST` + `OPENCODE_SKIP_START=true` to connect to external OpenCode
-- **Auth**: `OPENCHAMBER_UI_PASSWORD` env var for browser UI
+- **Auth**: `OPENCHAMBER_UI_PASSWORD` env var for browser UI; `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN=true` disables auth (LAN only)
 - **EXPOSE 3000**, **VOLUME** `/home/openchamber/.config/openchamber`
 - **Base**: same `node:26-trixie-slim` as opencode
 
