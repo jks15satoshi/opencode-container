@@ -27,8 +27,8 @@ jobs:
       - name: Detect version changes and check tags
         id: detect
         run: |
-          NEW_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p' Dockerfile)
-          NEW_CHAMBER=$(sed -n 's/^ARG OPENCHAMBER_VERSION=\(.*\)/\1/p' Dockerfile)
+          NEW_OPENCODE=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p;q' Dockerfile)
+          NEW_CHAMBER=$(sed -n 's/^ARG OPENCHAMBER_VERSION=\(.*\)/\1/p;q' Dockerfile)
 
           echo "OPENCODE version: ${NEW_OPENCODE}"
           echo "OPENCHAMBER version: ${NEW_CHAMBER}"
