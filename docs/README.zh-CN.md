@@ -2,6 +2,10 @@
 
 [English](README.md) | 简体中文
 
+[![CI](https://img.shields.io/github/actions/workflow/status/jks15satoshi/opencode-container/build.yml?branch=master&style=flat)](https://github.com/jks15satoshi/opencode-container/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/jks15satoshi/opencode-container?style=flat)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-linux%2Famd64%20|%20linux%2Farm64-9cf?style=flat)](#)
+
 容器化 OpenCode 与 OpenChamber 部署方案
 
 ## 什么是 OpenCode / OpenChamber
