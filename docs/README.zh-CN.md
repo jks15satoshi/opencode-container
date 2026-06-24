@@ -311,41 +311,47 @@ OpenCode 和 OpenChamber 镜像都预留了 `/workspace` 目录用于挂载你�
 
 每个镜像也同时创建了指向 `/workspace` 的符号链接 `~/workspace`，方便在容器中访问。
 
-### 管理开发工具
+### 配置语言运行时与开发工具
 
-OpenCode 和 OpenChamber 镜像都集成了 [Mise](https://mise.en.dev)，用于管理语言运行时和开发工具，你可以根据你的开发需求，通过挂载配置文件 `/mise/config.toml` 来指定需要安装的工具和版本。
+OpenCode 和 OpenChamber 镜像默认内置了以下运行时环境：
 
-例如，如果你需要一个 Python 3.12 w/ uv + Node.js 26 w/ PNPM 的开发环境，可以创建一个 `config.toml` 文件如下：
+- Bash:
+  - 内置 bash-language-server LSP。
+- Dockerfile:
+  - 内置 dockerfile-language-server-nodejs LSP。
+- Node.js: 
+  - 内置 Node.js 26 运行时和 NPM 包管理器，可以通过 Corepack 管理 Node.js 版本和包管理器（NPM、Yarn、PNPM）；
+  - 内置 Prettier 格式化工具。
+- Python:
+  - 内置 Python 解释器（版本取决于 Debian Trixie 发行版），不附带 pip 和 venv。
+- YAML:
+  - 内置 yaml-language-server LSP。
+
+内置工具通常不足以满足各种场景的开发需求，因此镜像还提供了 [Mise](https://mise.en.dev) 集成，用于管理语言运行时和开发工具。你可以通过挂载配置文件 `/mise/config.toml` 来指定需要安装的工具和版本。例如，对于下述开发环境：
+
+- Python 3.12 + uv + Ruff + ty
+- Node.js 24 + PNPM + typescript-language-server
+
+可以创建一个 `config.toml` 文件如下：
 
 ```toml
 [tools]
-python = "3.12"
-uv = "latest"
-node = "26"
+# Python
+python       = "3.12"
+uv           = "latest"
+ty           = "latest"
+"pipx:ruff"  = { version = "latest", depends = ["python"] }
 
-[hooks]
-postinstall = 'npx corepack enable'
+# Node
+node                             = "24"
+pnpm                             = "latest"
+"npm:typescript-language-server" = { version = "latest", depends = ["node"] }
 
 [settings]
-experimental = true
 python.uv_venv_auto = true
-
-[env]
-_.path = ['{{config_root}}/node_modules/.bin']
-
-[tasks.pnpm-install]
-description = 'Installs dependencies with pnpm'
-run = 'pnpm install'
-sources = ['package.json', 'pnpm-lock.yaml', 'mise.toml']
-outputs = ['node_modules/.pnpm/lock.yaml']
-
-[tasks.dev]
-description = 'Calls your dev script in `package.json`'
-run = 'node --run dev'
-depends = ['pnpm-install']
 ```
 
-镜像启动时会自动检测 `/mise/config.toml` 文件，并根据配置安装所需的工具和版本。
+镜像启动时会自动检测 `/mise/config.toml` 文件，并根据配置安装所需的工具和版本，并将其添加到 PATH 中。安装完成后，你可以在容器中直接使用这些工具。如果你正确挂载了 Mise 数据目录，则安装的工具和配置会在容器重启后保留。
 
 具体的 Mise 配置选项和使用方法，请参阅 [Mise 官方文档](https://mise.en.dev/getting-started.html)。
 

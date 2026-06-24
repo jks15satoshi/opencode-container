@@ -33,9 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g \
     bash-language-server \
     yaml-language-server \
-    vscode-json-languageserver \
     dockerfile-language-server-nodejs \
-    pyright \
     prettier && \
     npm cache clean --force
 
@@ -43,7 +41,7 @@ RUN npm install -g \
 ENV MISE_DATA_DIR=/mise
 ENV MISE_CACHE_DIR=/mise/cache
 ENV MISE_INSTALL_PATH=/usr/local/bin/mise
-ENV MISE_TRUSTED_CONFIG_PATHS=/workspace
+ENV MISE_TRUSTED_CONFIG_PATHS="/"
 ENV PATH="/mise/shims:${PATH}"
 
 RUN curl -fsSL https://mise.run | sh

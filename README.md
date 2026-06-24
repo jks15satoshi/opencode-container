@@ -311,45 +311,49 @@ As mentioned in the [Image Overview](#image-overview) section, at startup the im
 
 Each image also creates a symbolic link `~/workspace` pointing to `/workspace` for convenient access within the container.
 
-### Managing Development Tools
+### Configuring Language Runtimes and Development Tools
 
-Both the OpenCode and OpenChamber images include [mise](https://mise.en.dev) for managing language
-runtimes and dev tools. You can declare the tools you need by mounting a
-config file at `/mise/config.toml`.
+Both the OpenCode and OpenChamber images come with the following built-in runtime environments:
 
-For example, a Python 3.12 w/ uv + Node.js 26 w/ PNPM environment:
+- Bash:
+  - Built-in bash-language-server LSP.
+- Dockerfile:
+  - Built-in dockerfile-language-server-nodejs LSP.
+- Node.js:
+  - Built-in Node.js 26 runtime and npm package manager. Node.js versions and package managers (npm, Yarn, PNPM) can be managed through Corepack.
+  - Built-in Prettier formatter.
+- Python:
+  - Built-in Python interpreter (version depends on the Debian Trixie distribution). pip and venv are not bundled.
+- YAML:
+  - Built-in yaml-language-server LSP.
+
+The built-in tools are usually insufficient for various development scenarios, so the images also provide [Mise](https://mise.en.dev) integration for managing language runtimes and development tools. You can specify the tools and versions you need by mounting a configuration file at `/mise/config.toml`. For example, for the following development environment:
+
+- Python 3.12 + uv + Ruff + ty
+- Node.js 24 + PNPM + typescript-language-server
+
+You can create a `config.toml` file as follows:
 
 ```toml
 [tools]
-python = "3.12"
-uv     = "latest"
-node   = "26"
+# Python
+python       = "3.12"
+uv           = "latest"
+ty           = "latest"
+"pipx:ruff"  = { version = "latest", depends = ["python"] }
 
-[hooks]
-postinstall = 'npx corepack enable'
+# Node
+node                             = "24"
+pnpm                             = "latest"
+"npm:typescript-language-server" = { version = "latest", depends = ["node"] }
 
 [settings]
-experimental        = true
 python.uv_venv_auto = true
-
-[env]
-_.path = ['{{config_root}}/node_modules/.bin']
-
-[tasks.pnpm-install]
-description = 'Installs dependencies with pnpm'
-run         = 'pnpm install'
-sources     = ['package.json', 'pnpm-lock.yaml', 'mise.toml']
-outputs     = ['node_modules/.pnpm/lock.yaml']
-
-[tasks.dev]
-description = 'Calls your dev script in `package.json`'
-run         = 'node --run dev'
-depends     = ['pnpm-install']
 ```
 
-At startup the entrypoint detects `config.toml` in the mise data directory and installs
-the declared tools. See the [mise documentation](https://mise.en.dev/getting-started.html) for full
-configuration options.
+At startup, the image automatically detects the `/mise/config.toml` file and installs the required tools and versions according to the configuration, adding them to PATH. Once installed, you can use these tools directly inside the container. If you've correctly mounted the Mise data directory, the installed tools and configuration will persist across container restarts.
+
+For specific Mise configuration options and usage, please refer to the [Mise documentation](https://mise.en.dev/getting-started.html).
 
 ### Connecting LLM Model Providers
 

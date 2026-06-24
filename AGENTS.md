@@ -43,7 +43,7 @@ Build args for version pinning:
 
 The global `OPENCODE_VERSION` / `OPENCODE_SHA256` are placed **after** the `base` stage to avoid cache invalidation of the base stage when only the opencode-ai version changes.
 
-**Base stage** (`node:26-trixie-slim` pinned by SHA256): installs ca-certificates, curl, dnsutils, git, gosu, jq, python3, ripgrep, unzip, wget, zip, build-essential, cmake, libssl-dev, openssh-client, pkg-config, procps, less, htop, tree. Also installs npm-based LSPs (bash-language-server, yaml-language-server, vscode-json-languageserver, dockerfile-language-server-nodejs, pyright, prettier) and [mise](https://mise.en.dev) for language runtime management.
+**Base stage** (`node:26-trixie-slim` pinned by SHA256): extensive dev tooling (build-essential, cmake, libssl-dev, git, curl, jq, python3, ripgrep, gosu, etc.), npm-global LSPs (bash-language-server, yaml-language-server, dockerfile-language-server-nodejs, prettier), and [mise](https://mise.en.dev) for language runtime management.
 
 Both stages install via npm tarball with `sha256sum` verification, then `npm cache clean --force`. The openchamber stage additionally installs `@openchamber/web`. Each removes the default `node` user and creates a dedicated user (UID 1000).
 
@@ -60,7 +60,7 @@ Each creates an independent PR with `platformAutomerge: true`.
 ### Update flow
 
 1. Renovate opens PR bumping a version ARG → `update-checksums.yml` triggers (only when `github.actor == 'renovate[bot]'`)
-2. `update-checksums.sh` fetches the npm tarball for the bumped version, updates its SHA256, and syncs `OPENCODE_VERSION` to npm latest if `OPENCHAMBER_VERSION` was bumped
+2. `update-checksums.sh` fetches the npm tarball for the bumped version, updates its SHA256, then **always** syncs `OPENCODE_VERSION` to npm latest (unconditional, after both package checks)
 3. Auto-commits via `stefanzweifel/git-auto-commit-action` → PR auto-merges
 4. `build.yml` on push to master parses version ARGs from Dockerfile, checks `opencode/v{ver}` / `openchamber/v{ver}` tags exist (skips if present with no file changes), builds missing targets multi-arch, pushes to ghcr.io, creates git tag + GitHub Release
 
@@ -74,32 +74,23 @@ When `Dockerfile` or `entrypoint.sh` change but version ARGs stay the same (base
 
 ## CI pipelines
 
-- **`build.yml`**: Runs on push to `master` (and `workflow_dispatch`). The `detect` job: (1) parses version ARGs from Dockerfile, (2) checks if `Dockerfile`/`entrypoint.sh` changed via `git diff` against `github.event.before`/`after`, (3) for each target: base tag absent → regular build; base tag present + files changed → rev build (`{target}/v{ver}-rev.{N}`); otherwise skips. Builds with `docker buildx` for `linux/amd64,linux/arm64`, pushes to `ghcr.io`. Creates `opencode/v{ver}` / `openchamber/v{ver}` (or `-rev.{N}`) tag + GitHub Release with notes auto-generated via `.github/release.yml`. **The `detect` job parses version ARGs from the Dockerfile with `sed` — changing the ARG format/position will break CI.**
-- **`update-checksums.yml`**: Runs only when `github.actor == 'renovate[bot]'`.
+- **`build.yml`**: Runs on push to `master` (and `workflow_dispatch`). The `detect` job: (1) parses version ARGs from Dockerfile with `awk -F= '/^ARG OPENCODE_VERSION=/{print $2}'`, (2) checks if `Dockerfile`/`entrypoint.sh` changed via `git diff` against `github.event.before`/`after`, (3) for each target: base tag absent → regular build; base tag present + files changed → rev build (`{target}/v{ver}-rev.{N}`); otherwise skips. Builds with `docker buildx` for `linux/amd64,linux/arm64`, pushes to `ghcr.io`. Creates `opencode/v{ver}` / `openchamber/v{ver}` (or `-rev.{N}`) git tag + GitHub Release with notes auto-generated via `.github/release.yml`. **The `detect` job parses version ARGs from the Dockerfile with `awk` — changing the ARG format/position will break CI.**
+- **`update-checksums.yml`**: Runs on `pull_request` (`opened` / `synchronize`) only when `github.actor == 'renovate[bot]'`. Force-pushes to Renovate PRs re-trigger it. Commits with `stefanzweifel/git-auto-commit-action` (user `opencode-checksum-bot`).
 
 ## Runtime security model
 
 Builds as **root**, drops privileges via `gosu` at runtime:
 
 1. **Priority**: `PUID`/`PGID` env vars > auto-detect from `/workspace` mount owner > default `1000:1000`
-2. **Root refusal**: exits if UID or GID == 0
-3. **Validation**: non-negative integer check; non-numeric values rejected
-4. **Permission patching**: after determining the target UID/GID, the entrypoint runs `usermod`/`groupmod` to rebind the container user, then `chown` to fix ownership of the home directory and `/workspace`, recreates the `workspace` symlink inside the home directory, and runs `mise install` (no-op without user config) — all before `exec gosu`
+2. **Auto-detection**: compares device IDs of `/` vs `/workspace` via `stat -c '%D'` — differing devices means a bind mount exists, so it reads the mount owner. Without a bind mount, falls through to defaults.
+3. **Root refusal**: exits if UID or GID == 0
+4. **Validation**: non-negative integer check; non-numeric values rejected
+5. **Permission patching**: after determining the target UID/GID, the entrypoint runs `usermod`/`groupmod` to rebind the container user, then `chown` to fix ownership of the home directory and `/workspace`, recreates the `workspace` symlink inside the home directory, and runs `mise install` (no-op without user config) — all before `exec gosu`
 
-## opencode image
+## Per-image auth quirks
 
-- **Default CMD**: `opencode serve --hostname 0.0.0.0 --port 4096 --print-logs`
-- **Auth**: `OPENCODE_SERVER_PASSWORD` → HTTP basic auth (username `opencode`, overridable via `OPENCODE_SERVER_USERNAME`)
-- **EXPOSE 4096**, **VOLUME** `/home/opencode/.config/opencode`, `/home/opencode/.local/share/opencode`, and `/mise`
-- **Base**: `node:26-trixie-slim` pinned by SHA256 digest
-
-## openchamber image
-
-- **Default CMD**: `openchamber serve --foreground --port 3000 --host 0.0.0.0`
-- **Internal OpenCode**: starts/manages an internal OpenCode server by default; set `OPENCODE_HOST` + `OPENCODE_SKIP_START=true` to connect to external OpenCode
-- **Auth**: `OPENCHAMBER_UI_PASSWORD` env var for browser UI; `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN=true` disables auth (LAN only)
-- **EXPOSE 3000**, **VOLUME** `/home/openchamber/.config/openchamber` and `/mise`
-- **Base**: same `node:26-trixie-slim` as opencode
+- **opencode**: Auth via `OPENCODE_SERVER_PASSWORD` (HTTP basic auth; default username `opencode`, override with `OPENCODE_SERVER_USERNAME`).
+- **openchamber**: Auth via `OPENCHAMBER_UI_PASSWORD`. By default starts its own internal OpenCode instance; to use an external one set `OPENCODE_SKIP_START=true` + `OPENCODE_HOST=<url>`. `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN=true` disables auth (LAN only).
 
 ## Constraints
 
