@@ -50,7 +50,7 @@ RUN curl -fsSL https://mise.run | sh
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.17.9
+ARG OPENCODE_VERSION=1.17.10
 ARG OPENCODE_SHA256=c943d8f0bde6192f0b8744a0cf9388b4d3d417bec010707da45d50dac960a369
 
 # ============================================
