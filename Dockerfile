@@ -51,7 +51,7 @@ RUN curl -fsSL https://mise.run | sh
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.17.10
-ARG OPENCODE_SHA256=c943d8f0bde6192f0b8744a0cf9388b4d3d417bec010707da45d50dac960a369
+ARG OPENCODE_SHA256=55213528242c373b3772a04b37ac031e928b96807111f7a6f65869675fa30daa
 
 # ============================================
 # Stage: OpenCode
