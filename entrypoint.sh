@@ -93,7 +93,7 @@ chown -R "${TARGET_UID}:${TARGET_GID}" "$APP_HOME" 2>/dev/null || true
 chown "${TARGET_UID}:${TARGET_GID}" /workspace 2>/dev/null || true
 chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
 
-ln -sf /workspace "${APP_HOME}/workspace" 2>/dev/null || true
+ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 
 # ===============================================
 # Install devtools via Mise (if available)
