@@ -99,8 +99,9 @@ ln -sf /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 # Install devtools via Mise (if available)
 # ===============================================
 
-echo "[*] Checking mise tools (no config → no-op)..." >&2
-gosu "$APP_USER" mise install 2>/dev/null || echo "[!] mise install skipped (no config or failed)" >&2
+echo "[*] Checking mise tools..." >&2
+gosu "$APP_USER" mise trust / 2>&1 || true
+gosu "$APP_USER" mise install || echo "[!] mise install encountered errors (check config or network)" >&2
 
 # ===============================================
 # Execute command as user
