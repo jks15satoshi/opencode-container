@@ -3,7 +3,7 @@
 # ============================================
 # Base stage
 # ============================================
-FROM node:26-trixie-slim@sha256:586819c25e4fd73bed92203edc1276b07924fc2305f01341c29a3d8fd4d3f2ce AS base
+FROM node:26-trixie-slim@sha256:f9b8bd6c62fcd007c08ce2bb2907485b624b968fd76094445822e0ec14002cf0 AS base
 
 # Install common agent tools / dev dependencies + gosu for privilege dropping
 RUN apt-get update && apt-get install -y --no-install-recommends \
