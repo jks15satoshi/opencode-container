@@ -5,6 +5,15 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      build_opencode:
+        description: "Build OpenCode image"
+        type: boolean
+        default: true
+      build_openchamber:
+        description: "Build OpenChamber image"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -24,92 +33,152 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect version changes and check tags
+      - name: Detect changes
         id: detect
         run: |
+          # Determine output version: regular if base tag absent, rev otherwise
+          rev_version() {
+            local target="$1"
+            local version="$2"
+            local base_tag="${target}/v${version}"
+            if git rev-parse "$base_tag" >/dev/null 2>&1; then
+              local latest_rev
+              latest_rev=$(git tag -l "${base_tag}-rev.*" | sort -V | tail -1)
+              local next_rev=1
+              if [ -n "$latest_rev" ]; then
+                next_rev=$((${latest_rev##*-rev.} + 1))
+              fi
+              echo "${version}-rev.${next_rev}"
+            else
+              echo "$version"
+            fi
+          }
+
           NEW_OPENCODE=$(awk -F= '/^ARG OPENCODE_VERSION=/{print $2; exit}' Dockerfile)
           NEW_CHAMBER=$(awk -F= '/^ARG OPENCHAMBER_VERSION=/{print $2; exit}' Dockerfile)
 
           echo "OPENCODE version: ${NEW_OPENCODE}"
           echo "OPENCHAMBER version: ${NEW_CHAMBER}"
 
-          # Detect if image definition files (Dockerfile / entrypoint.sh) changed
-          FILES_CHANGED="false"
+          OPENCODE_CHANGED="false"
+          OPENCHAMBER_CHANGED="false"
+          OPENCODE_OUT="$NEW_OPENCODE"
+          OPENCHAMBER_OUT="$NEW_CHAMBER"
+
+          # --- workflow_dispatch ---
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            FILES_CHANGED="true"
-            echo "Trigger: workflow_dispatch (building both targets with rev logic)"
-          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "Trigger: workflow_dispatch"
+
+            if [ "${{ inputs.build_opencode }}" = "true" ]; then
+              OPENCODE_CHANGED="true"
+              OPENCODE_OUT=$(rev_version "opencode" "$NEW_OPENCODE")
+              echo "Building opencode: ${OPENCODE_OUT}"
+            fi
+
+            if [ "${{ inputs.build_openchamber }}" = "true" ]; then
+              OPENCHAMBER_CHANGED="true"
+              OPENCHAMBER_OUT=$(rev_version "openchamber" "$NEW_CHAMBER")
+              echo "Building openchamber: ${OPENCHAMBER_OUT}"
+            fi
+
+          # --- push ---
+          else
+            IS_RENOVATE="false"
+            AUTHOR="${{ github.event.head_commit.author.username }}"
+            COMMITTER="${{ github.event.head_commit.committer.username }}"
+            if [ "$AUTHOR" = "renovate[bot]" ] || [ "$COMMITTER" = "renovate[bot]" ]; then
+              IS_RENOVATE="true"
+            fi
+
             BEFORE="${{ github.event.before }}"
             AFTER="${{ github.event.after }}"
-            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
-              ! git diff --quiet "$BEFORE" "$AFTER" -- Dockerfile entrypoint.sh 2>/dev/null; then
-              FILES_CHANGED="true"
-              echo "Image definition files (Dockerfile/entrypoint.sh) changed"
-            else
-              echo "No image definition file changes detected"
-            fi
-          fi
 
-          # --- opencode ---
-          OPENCODE_CHANGED="false"
-          OPENCODE_OUT="$NEW_OPENCODE"
-          if [ -n "$NEW_OPENCODE" ]; then
-            BASE_TAG="opencode/v${NEW_OPENCODE}"
-            if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
-              echo "Base tag $BASE_TAG exists (version unchanged)"
-              if [ "$FILES_CHANGED" = "true" ]; then
-                LATEST_REV=$(git tag -l "${BASE_TAG}-rev.*" | sort -V | tail -1)
-                if [ -z "$LATEST_REV" ]; then
-                  NEXT_REV=1
-                else
-                  REV_NUM=${LATEST_REV##*-rev.}
-                  NEXT_REV=$((REV_NUM + 1))
+            if [ "$IS_RENOVATE" = "true" ]; then
+              echo "Trigger: push (Renovate)"
+
+              if ! [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+                if git diff "$BEFORE" "$AFTER" -- Dockerfile | grep -qE '^[-+].*OPENCODE_VERSION='; then
+                  OPENCODE_CHANGED="true"
+                  OPENCODE_OUT=$(rev_version "opencode" "$NEW_OPENCODE")
+                  echo "OPENCODE_VERSION changed -> building opencode: ${OPENCODE_OUT}"
                 fi
-                OPENCODE_OUT="${NEW_OPENCODE}-rev.${NEXT_REV}"
+
+                if git diff "$BEFORE" "$AFTER" -- Dockerfile | grep -qE '^[-+].*OPENCHAMBER_VERSION='; then
+                  OPENCHAMBER_CHANGED="true"
+                  OPENCHAMBER_OUT=$(rev_version "openchamber" "$NEW_CHAMBER")
+                  echo "OPENCHAMBER_VERSION changed -> building openchamber: ${OPENCHAMBER_OUT}"
+                fi
+              fi
+
+            else
+              echo "Trigger: push (non-Renovate)"
+
+              # --- entrypoint.sh ---
+              ENTRYPOINT_CHANGED="false"
+              if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
+                 ! git diff --quiet "$BEFORE" "$AFTER" -- entrypoint.sh 2>/dev/null; then
+                ENTRYPOINT_CHANGED="true"
+                echo "entrypoint.sh changed"
+              fi
+
+              # --- Dockerfile stage-level changes ---
+              BASE_CHANGED="false"
+              OC_STAGE_CHANGED="false"
+              CH_STAGE_CHANGED="false"
+
+              OC_START=$(awk '/^FROM base AS opencode$/{print NR; exit}' Dockerfile)
+              CH_START=$(awk '/^FROM base AS openchamber$/{print NR; exit}' Dockerfile)
+
+              if [ -n "$OC_START" ] && [ -n "$CH_START" ] && \
+                 [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+                STAGES=$(git diff "$BEFORE" "$AFTER" -- Dockerfile | awk \
+                  -v oc="$OC_START" -v ch="$CH_START" '
+                  /^@@/ {
+                    plus = $3
+                    gsub(/^\+/, "", plus)
+                    split(plus, nr, ",")
+                    ns = nr[1] + 0
+                    if (ns < oc)      print "BASE"
+                    else if (ns < ch) print "OPENCODE"
+                    else              print "OPENCHAMBER"
+                  }' | sort -u)
+
+                if echo "$STAGES" | grep -qx "BASE";        then BASE_CHANGED="true";        fi
+                if echo "$STAGES" | grep -qx "OPENCODE";    then OC_STAGE_CHANGED="true";    fi
+                if echo "$STAGES" | grep -qx "OPENCHAMBER"; then CH_STAGE_CHANGED="true";   fi
+
+                echo "Dockerfile stages: base=${BASE_CHANGED}, opencode=${OC_STAGE_CHANGED}, openchamber=${CH_STAGE_CHANGED}"
+              elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
+                   [ -z "$OC_START" ] || [ -z "$CH_START" ]; then
+                BASE_CHANGED="true"
+                echo "Dockerfile stage fallback: treating as base changed"
+              fi
+
+              # --- decide what to build ---
+              if [ "$ENTRYPOINT_CHANGED" = "true" ] || [ "$BASE_CHANGED" = "true" ] || [ "$OC_STAGE_CHANGED" = "true" ]; then
                 OPENCODE_CHANGED="true"
-                echo "Building opencode rev: ${OPENCODE_OUT}"
-              else
-                echo "No file changes, skipping opencode"
+                OPENCODE_OUT=$(rev_version "opencode" "$NEW_OPENCODE")
+                echo "Building opencode: ${OPENCODE_OUT}"
               fi
-            else
-              echo "Base tag $BASE_TAG not found, building new version"
-              OPENCODE_CHANGED="true"
-            fi
-          fi
 
-          # --- openchamber ---
-          CHAMBER_CHANGED="false"
-          CHAMBER_OUT="$NEW_CHAMBER"
-          if [ -n "$NEW_CHAMBER" ]; then
-            BASE_TAG="openchamber/v${NEW_CHAMBER}"
-            if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
-              echo "Base tag $BASE_TAG exists (version unchanged)"
-              if [ "$FILES_CHANGED" = "true" ]; then
-                LATEST_REV=$(git tag -l "${BASE_TAG}-rev.*" | sort -V | tail -1)
-                if [ -z "$LATEST_REV" ]; then
-                  NEXT_REV=1
-                else
-                  REV_NUM=${LATEST_REV##*-rev.}
-                  NEXT_REV=$((REV_NUM + 1))
-                fi
-                CHAMBER_OUT="${NEW_CHAMBER}-rev.${NEXT_REV}"
-                CHAMBER_CHANGED="true"
-                echo "Building openchamber rev: ${CHAMBER_OUT}"
-              else
-                echo "No file changes, skipping openchamber"
+              if [ "$ENTRYPOINT_CHANGED" = "true" ] || [ "$BASE_CHANGED" = "true" ] || [ "$CH_STAGE_CHANGED" = "true" ]; then
+                OPENCHAMBER_CHANGED="true"
+                OPENCHAMBER_OUT=$(rev_version "openchamber" "$NEW_CHAMBER")
+                echo "Building openchamber: ${OPENCHAMBER_OUT}"
               fi
-            else
-              echo "Base tag $BASE_TAG not found, building new version"
-              CHAMBER_CHANGED="true"
+
+              if [ "$OPENCODE_CHANGED" = "false" ] && [ "$OPENCHAMBER_CHANGED" = "false" ]; then
+                echo "No relevant changes detected, skipping builds"
+              fi
             fi
           fi
 
           echo "opencode_changed=${OPENCODE_CHANGED}" >> "$GITHUB_OUTPUT"
           echo "opencode_new=${OPENCODE_OUT}" >> "$GITHUB_OUTPUT"
-          echo "openchamber_changed=${CHAMBER_CHANGED}" >> "$GITHUB_OUTPUT"
-          echo "openchamber_new=${CHAMBER_OUT}" >> "$GITHUB_OUTPUT"
+          echo "openchamber_changed=${OPENCHAMBER_CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "openchamber_new=${OPENCHAMBER_OUT}" >> "$GITHUB_OUTPUT"
 
-          echo "Results: opencode=${OPENCODE_CHANGED} (${OPENCODE_OUT}), openchamber=${CHAMBER_CHANGED} (${CHAMBER_OUT})"
+          echo "Results: opencode=${OPENCODE_CHANGED} (${OPENCODE_OUT}), openchamber=${OPENCHAMBER_CHANGED} (${OPENCHAMBER_OUT})"
 
   # ============================================================
   # Build OpenCode
