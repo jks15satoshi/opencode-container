@@ -66,7 +66,7 @@ RUN set -eux; \
     -o /tmp/bun.zip; \
     echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c; \
     unzip -q -o /tmp/bun.zip -d /tmp/bun-extract; \
-    cp /tmp/bun-extract/bun /usr/local/bin/bun; \
+    cp "/tmp/bun-extract/bun-linux-${BUN_ARCH}/bun" /usr/local/bin/bun; \
     chmod +x /usr/local/bin/bun; \
     rm -rf /tmp/bun.zip /tmp/bun-extract; \
     bun --version
