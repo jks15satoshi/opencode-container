@@ -34,7 +34,7 @@
 
 镜像基于 `node:26-trixie-slim` 构建，内置常用的 shell 工具（如 `curl`、`git`、`jq` 等），核心程序都基于官方分发的 OpenCode / OpenChamber 版本构建，维持原版功能不加修改。所有镜像都支持 `linux/amd64` 和 `linux/arm64` 架构。
 
-镜像默认运行一个非 root 用户（`opencode` 或 `openchamber`，取决于部署镜像），UID 和 GID 默认均为 1000，但启动时会根据挂载的工作区目录权限自动调整为匹配该目录的所有者，以避免权限问题。
+镜像默认运行一个非 root 用户（`opencode`），UID 和 GID 默认均为 1000，但启动时会根据挂载的工作区目录权限自动调整为匹配该目录的所有者，以避免权限问题。
 
 > [!NOTE]
 > 镜像在构建期以 root 用户运行，在运行时通过临时降权为非 root 用户运行 OpenCode / OpenChamber，这意味着如果你通过 `docker exec` 进入容器或在容器内执行命令时，会以 root 用户身份运行。
@@ -61,9 +61,9 @@ docker run -d --name opencode \
 docker run -d --name openchamber \
   -p 3000:3000 \
   -e OPENCHAMBER_UI_PASSWORD=your_password \
-  -v openchamber_config:/home/openchamber/.config/openchamber \
-  -v opencode_config:/home/openchamber/.config/opencode \
-  -v opencode_data:/home/openchamber/.local/share/opencode \
+  -v openchamber_config:/home/opencode/.config/openchamber \
+  -v opencode_config:/home/opencode/.config/opencode \
+  -v opencode_data:/home/opencode/.local/share/opencode \
   -v /path/to/your/project:/workspace \
   ghcr.io/jks15satoshi/openchamber:latest
 ```
@@ -145,9 +145,9 @@ docker run -d --name openchamber \
     --name openchamber \
     -p 3000:3000 \
     -e OPENCHAMBER_UI_PASSWORD=your_secure_password \
-    -v openchamber_config:/home/openchamber/.config/openchamber \
-    -v opencode_config:/home/openchamber/.config/opencode \
-    -v opencode_data:/home/openchamber/.local/share/opencode \
+    -v openchamber_config:/home/opencode/.config/openchamber \
+    -v opencode_config:/home/opencode/.config/opencode \
+    -v opencode_data:/home/opencode/.local/share/opencode \
     -v /path/to/your/project:/workspace \
     ghcr.io/jks15satoshi/openchamber:latest
   ```
@@ -164,9 +164,9 @@ docker run -d --name openchamber \
       environment:
         - OPENCHAMBER_UI_PASSWORD=your_secure_password
       volumes:
-        - openchamber_config:/home/openchamber/.config/openchamber
-        - opencode_config:/home/openchamber/.config/opencode
-        - opencode_data:/home/openchamber/.local/share/opencode
+        - openchamber_config:/home/opencode/.config/openchamber
+        - opencode_config:/home/opencode/.config/opencode
+        - opencode_data:/home/opencode/.local/share/opencode
         - workspace:/workspace
       healthcheck:
         test: ["CMD", "curl", "-fsS", "http://localhost:3000/global/health"]
@@ -230,7 +230,7 @@ docker run -d --name openchamber \
         - OPENCODE_SKIP_START=true
         - OPENCODE_HOST=http://opencode:4096
       volumes:
-        - openchamber_config:/home/openchamber/.config/openchamber
+        - openchamber_config:/home/opencode/.config/openchamber
         - workspace:/workspace
       depends_on:
         - opencode
@@ -296,11 +296,11 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 
 | 路径                                      | 说明                                                                                                                                                |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/home/openchamber/.config/openchamber`   | OpenChamber 配置目录。存放用户配置信息、会话数据、Git 凭证配置、日志等。                                                                            |
-| `/home/openchamber/.config/opencode`      | OpenCode 配置目录。存放用户配置文件与插件文件。<br/> 仅单独部署时需要挂载。                                                                         |
-| `/home/openchamber/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。<br/> 仅单独部署时需要挂载。                                                                   |
-| `/home/openchamber/.ssh/id_ed25519`       | SSH 私钥文件。用于 Git 操作的 SSH 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 SSH 时，需要挂载你的 SSH 私钥文件。     |
-| `/home/openchamber/.git-credentials`      | Git 凭证文件。用于 Git 操作的 HTTPS 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 token 时，需要挂载你的 Git 凭证文件。 |
+| `/home/opencode/.config/openchamber`   | OpenChamber 配置目录。存放用户配置信息、会话数据、Git 凭证配置、日志等。                                                                            |
+| `/home/opencode/.config/opencode`      | OpenCode 配置目录。存放用户配置文件与插件文件。<br/> 仅单独部署时需要挂载。                                                                         |
+| `/home/opencode/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。<br/> 仅单独部署时需要挂载。                                                                   |
+| `/home/opencode/.ssh/id_ed25519`       | SSH 私钥文件。用于 Git 操作的 SSH 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 SSH 时，需要挂载你的 SSH 私钥文件。     |
+| `/home/opencode/.git-credentials`      | Git 凭证文件。用于 Git 操作的 HTTPS 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 token 时，需要挂载你的 Git 凭证文件。 |
 | `/mise`                                   | Mise 数据目录。存放 Mise 配置和安装的开发工具。<br/> 详见[管理开发工具](#管理开发工具)。                                                            |
 
 ### 工作区目录与权限

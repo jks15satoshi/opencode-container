@@ -7,7 +7,7 @@ Docker packaging for **OpenCode** and **OpenChamber** via a single multi-stage `
 | Path | Purpose |
 |------|---------|
 | `Dockerfile` | Multi-stage build; base → opencode, openchamber stages |
-| `entrypoint.sh` | Single entrypoint for both opencode and openchamber, driven by `APP_USER` env var |
+| `entrypoint.sh` | Single entrypoint for both opencode and openchamber, driven by `APP` env var |
 | `.github/workflows/build.yml` | Push-to-master CI: distinguishes Renovate (build affected image on version bump) vs non-Renovate (granular stage detection: entrypoint/base → both, single stage → single image, rev builds). `workflow_dispatch` supports per-image boolean inputs |
 | `.github/workflows/update-checksums.yml` | Renovate PR CI: recompute SHA-256, sync OPENCODE_VERSION to latest, auto-commit |
 | `.github/release.yml` | GitHub Release notes template — auto-generates sections by PR label (breaking, enhancement, bug, dependency, etc.) |
@@ -45,9 +45,9 @@ The global `OPENCODE_VERSION` / `OPENCODE_SHA256` are placed **after** the `base
 
 **Base stage** (`node:26-trixie-slim` pinned by SHA256): extensive dev tooling (build-essential, cmake, libssl-dev, git, curl, jq, python3, ripgrep, gosu, etc.), npm-global LSPs (bash-language-server, yaml-language-server, dockerfile-language-server-nodejs, prettier), and [mise](https://mise.en.dev) for language runtime management.
 
-Both stages install via npm tarball with `sha256sum` verification, then `npm cache clean --force`. The openchamber stage additionally installs `@openchamber/web`. Each removes the default `node` user and creates a dedicated user (UID 1000).
+Both stages install via npm tarball with `sha256sum` verification, then `npm cache clean --force`. The openchamber stage additionally installs `@openchamber/web`. The base stage removes the default `node` user and creates a unified `opencode` user (UID 1000) shared by both images.
 
-Both stages use a single `entrypoint.sh` at repo root, driven by `APP_USER` env var set in each Dockerfile stage. The entrypoint handles privilege-drop logic and runs `mise install` (no-op without user config).
+Both stages use a single `entrypoint.sh` at repo root, driven by `APP` env var set in each Dockerfile stage. The entrypoint handles privilege-drop logic and runs `mise install` (no-op without user config).
 
 ## Version management (Renovate)
 

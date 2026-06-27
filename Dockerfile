@@ -5,6 +5,11 @@
 # ============================================
 FROM node:26-trixie-slim@sha256:a1d9d671994fc2d26e297ac56b4b1522a8bc7fa71c43b14cd1b1fe6c5116f7dc AS base
 
+# renovate: datasource=npm depName=bun
+ARG BUN_VERSION=1.3.14
+ARG BUN_SHA256_AMD64=951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f
+ARG BUN_SHA256_ARM64=a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b
+
 # Install common agent tools / dev dependencies + gosu for privilege dropping
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -46,6 +51,39 @@ ENV PATH="/mise/shims:${PATH}"
 
 RUN curl -fsSL https://mise.run | sh
 
+# Install Bun for plugin auto-install
+ARG TARGETARCH
+ARG BUN_VERSION
+ARG BUN_SHA256_AMD64
+ARG BUN_SHA256_ARM64
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+    amd64) BUN_ARCH="x64"; BUN_SHA256="${BUN_SHA256_AMD64}" ;; \
+    arm64) BUN_ARCH="aarch64"; BUN_SHA256="${BUN_SHA256_ARM64}" ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${BUN_ARCH}.zip" \
+    -o /tmp/bun.zip; \
+    echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c; \
+    unzip -q -o /tmp/bun.zip -d /tmp/bun-extract; \
+    cp /tmp/bun-extract/bun /usr/local/bin/bun; \
+    chmod +x /usr/local/bin/bun; \
+    rm -rf /tmp/bun.zip /tmp/bun-extract; \
+    bun --version
+
+# ============================================
+# Create unified system user
+# ============================================
+RUN userdel -r node && \
+    groupadd -g 1000 opencode && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
+    mkdir -p /workspace /mise && \
+    ln -s /workspace /home/opencode/workspace && \
+    chown -R 1000:1000 /workspace /mise /home/opencode
+
+COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV SYSTEM_USER=opencode
+
 # ============================================
 # Global build arguments
 # ============================================
@@ -58,7 +96,7 @@ ARG OPENCODE_SHA256=e3951c7f35f4b8c8f27a3185690be5244a5012b6f15a538b5d600e5b946b
 # ============================================
 FROM base AS opencode
 
-ENV APP_USER=opencode
+ENV APP=opencode
 
 ARG OPENCODE_VERSION
 ARG OPENCODE_SHA256
@@ -70,17 +108,6 @@ RUN set -eux; \
     npm install -g /tmp/opencode-ai.tgz && \
     rm /tmp/opencode-ai.tgz && \
     npm cache clean --force
-
-# Remove default node user and create opencode user with UID 1000
-RUN userdel -r node && \
-    groupadd -g 1000 opencode && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
-    mkdir -p /workspace /mise && \
-    ln -s /workspace /home/opencode/workspace && \
-    chown -R 1000:1000 /workspace /mise /home/opencode
-
-# Runtime entrypoint
-COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
 
 EXPOSE 4096
 WORKDIR /workspace
@@ -94,7 +121,7 @@ CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096", "--print-lo
 # ============================================
 FROM base AS openchamber
 
-ENV APP_USER=openchamber
+ENV APP=openchamber
 
 ARG OPENCODE_VERSION
 ARG OPENCODE_SHA256
@@ -118,20 +145,9 @@ RUN set -eux; \
     rm /tmp/openchamber-web.tgz && \
     npm cache clean --force
 
-# Remove default node user and create openchamber user with UID 1000
-RUN userdel -r node && \
-    groupadd -g 1000 openchamber && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash openchamber && \
-    mkdir -p /workspace /mise && \
-    ln -s /workspace /home/openchamber/workspace && \
-    chown -R 1000:1000 /workspace /mise /home/openchamber
-
-# Runtime entrypoint
-COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
-
 EXPOSE 3000
 WORKDIR /workspace
-VOLUME ["/home/openchamber/.config/openchamber", "/mise"]
+VOLUME ["/home/opencode/.config/openchamber", "/mise"]
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["openchamber", "serve", "--foreground", "--port", "3000", "--host", "0.0.0.0"]

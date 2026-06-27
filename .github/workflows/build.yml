@@ -108,6 +108,14 @@ jobs:
                   OPENCHAMBER_OUT=$(rev_version "openchamber" "$NEW_CHAMBER")
                   echo "OPENCHAMBER_VERSION changed -> building openchamber: ${OPENCHAMBER_OUT}"
                 fi
+
+                if git diff "$BEFORE" "$AFTER" -- Dockerfile | grep -qE '^[-+].*BUN_VERSION='; then
+                  OPENCODE_CHANGED="true"
+                  OPENCHAMBER_CHANGED="true"
+                  OPENCODE_OUT=$(rev_version "opencode" "$NEW_OPENCODE")
+                  OPENCHAMBER_OUT=$(rev_version "openchamber" "$NEW_CHAMBER")
+                  echo "BUN_VERSION changed -> building both images"
+                fi
               fi
 
             else

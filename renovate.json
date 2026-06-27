@@ -24,6 +24,15 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>npm) depName=(?<depName>@openchamber/web)\\s+ARG OPENCHAMBER_VERSION=(?<currentValue>[^\\s]+)"
       ]
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^Dockerfile$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>bun)\\s+ARG BUN_VERSION=(?<currentValue>[^\\s]+)"
+      ]
     }
   ],
   "packageRules": [
@@ -47,6 +56,17 @@
       "labels": [
         "dependencies",
         "openchamber"
+      ]
+    },
+    {
+      "matchDepNames": [
+        "bun"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "labels": [
+        "dependencies",
+        "bun"
       ]
     }
   ]

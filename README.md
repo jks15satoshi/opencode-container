@@ -34,7 +34,7 @@ Both images share the same tag conventions:
 
 Images are built on `node:26-trixie-slim` and include common shell tools (such as `curl`, `git`, `jq`, etc.). The core programs are built from the officially distributed OpenCode / OpenChamber releases, maintaining original functionality without modification. All images support both `linux/amd64` and `linux/arm64` architectures.
 
-Images run as a non-root user by default (`opencode` or `openchamber`, depending on the deployed image), with default UID and GID of 1000. At startup, the container will automatically detect the mounted workspace directory permissions and adjust the UID/GID to match the directory owner, avoiding permission issues.
+Images run as a non-root user by default (`opencode`), with default UID and GID of 1000. At startup, the container will automatically detect the mounted workspace directory permissions and adjust the UID/GID to match the directory owner, avoiding permission issues.
 
 > [!NOTE]
 > The image is built as root and drops privileges to a non-root user at runtime. This means if you `docker exec` into the container or run commands inside it, you will be operating as root.
@@ -61,9 +61,9 @@ Access `http://localhost:4096`
 docker run -d --name openchamber \
   -p 3000:3000 \
   -e OPENCHAMBER_UI_PASSWORD=your_password \
-  -v openchamber_config:/home/openchamber/.config/openchamber \
-  -v opencode_config:/home/openchamber/.config/opencode \
-  -v opencode_data:/home/openchamber/.local/share/opencode \
+  -v openchamber_config:/home/opencode/.config/openchamber \
+  -v opencode_config:/home/opencode/.config/opencode \
+  -v opencode_data:/home/opencode/.local/share/opencode \
   -v /path/to/your/project:/workspace \
   ghcr.io/jks15satoshi/openchamber:latest
 ```
@@ -145,9 +145,9 @@ If you only need the OpenChamber web interface and don't care how the OpenCode s
     --name openchamber \
     -p 3000:3000 \
     -e OPENCHAMBER_UI_PASSWORD=your_secure_password \
-    -v openchamber_config:/home/openchamber/.config/openchamber \
-    -v opencode_config:/home/openchamber/.config/opencode \
-    -v opencode_data:/home/openchamber/.local/share/opencode \
+    -v openchamber_config:/home/opencode/.config/openchamber \
+    -v opencode_config:/home/opencode/.config/opencode \
+    -v opencode_data:/home/opencode/.local/share/opencode \
     -v /path/to/your/project:/workspace \
     ghcr.io/jks15satoshi/openchamber:latest
   ```
@@ -164,9 +164,9 @@ If you only need the OpenChamber web interface and don't care how the OpenCode s
       environment:
         - OPENCHAMBER_UI_PASSWORD=your_secure_password
       volumes:
-        - openchamber_config:/home/openchamber/.config/openchamber
-        - opencode_config:/home/openchamber/.config/opencode
-        - opencode_data:/home/openchamber/.local/share/opencode
+        - openchamber_config:/home/opencode/.config/openchamber
+        - opencode_config:/home/opencode/.config/opencode
+        - opencode_data:/home/opencode/.local/share/opencode
         - workspace:/workspace
       healthcheck:
         test: ["CMD", "curl", "-fsS", "http://localhost:3000/global/health"]
@@ -230,7 +230,7 @@ Choose combined deployment if you have the following needs:
         - OPENCODE_SKIP_START=true
         - OPENCODE_HOST=http://opencode:4096
       volumes:
-        - openchamber_config:/home/openchamber/.config/openchamber
+        - openchamber_config:/home/opencode/.config/openchamber
         - workspace:/workspace
       depends_on:
         - opencode
@@ -296,11 +296,11 @@ The following environment variables are not upstream-supported configuration opt
 
 | Path                                      | Description                                                                                                                                                                           |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/home/openchamber/.config/openchamber`   | OpenChamber configuration directory. Stores user configuration info, session data, Git credential config, logs, etc.                                                                  |
-| `/home/openchamber/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.<br/> Only needs to be mounted in standalone deployment.                                                  |
-| `/home/openchamber/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.<br/> Only needs to be mounted in standalone deployment.                                            |
-| `/home/openchamber/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key when using Git operations in OpenChamber with SSH authentication.                |
-| `/home/openchamber/.git-credentials`      | Git credentials file. Used for HTTPS authentication in Git operations.<br/> Mount your Git credentials file when using Git operations in OpenChamber with token-based authentication. |
+| `/home/opencode/.config/openchamber`   | OpenChamber configuration directory. Stores user configuration info, session data, Git credential config, logs, etc.                                                                  |
+| `/home/opencode/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.<br/> Only needs to be mounted in standalone deployment.                                                  |
+| `/home/opencode/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.<br/> Only needs to be mounted in standalone deployment.                                            |
+| `/home/opencode/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key when using Git operations in OpenChamber with SSH authentication.                |
+| `/home/opencode/.git-credentials`      | Git credentials file. Used for HTTPS authentication in Git operations.<br/> Mount your Git credentials file when using Git operations in OpenChamber with token-based authentication. |
 | `/mise`                                   | Mise data directory. Stores Mise config and installed development tools. <br/> See [Managing Development Tools](#managing-development-tools).                                         |
 
 ### Workspace Directory and Permissions
