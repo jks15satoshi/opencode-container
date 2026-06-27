@@ -231,6 +231,8 @@ docker run -d --name openchamber \
         - OPENCODE_HOST=http://opencode:4096
       volumes:
         - openchamber_config:/home/opencode/.config/openchamber
+        - opencode_config:/home/opencode/.config/opencode
+        - opencode_data:/home/opencode/.local/share/opencode
         - workspace:/workspace
       depends_on:
         - opencode
