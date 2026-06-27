@@ -1,13 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_USER="${APP_USER:-}"
+APP="${APP:-}"
 
-# Validate APP_USER
-if [ "${APP_USER}" != "opencode" ] && [ "${APP_USER}" != "openchamber" ]; then
-    echo "[X] APP_USER must be 'opencode' or 'openchamber', got: ${APP_USER:-<empty>}" >&2
+# Validate APP
+if [ "${APP}" != "opencode" ] && [ "${APP}" != "openchamber" ]; then
+    echo "[X] APP must be 'opencode' or 'openchamber', got: ${APP:-<empty>}" >&2
     exit 1
 fi
+
+SYSTEM_USER="${SYSTEM_USER:-opencode}"
 
 print_header() {
     local user="$1"
@@ -30,7 +32,7 @@ print_header() {
     echo "[*] ${title} version: $(${user} --version 2>&1 | head -1)" >&2
 }
 
-print_header "${APP_USER}"
+print_header "${APP}"
 
 # ===============================================
 # Determine target UID/GID
@@ -70,24 +72,24 @@ echo "[*] Running as UID:GID: ${TARGET_UID}:${TARGET_GID}" >&2
 # Adjust user UID/GID
 # ===============================================
 
-CURRENT_UID=$(id -u "$APP_USER")
-CURRENT_GID=$(getent group "$APP_USER" | cut -d: -f3)
+CURRENT_UID=$(id -u "$SYSTEM_USER")
+CURRENT_GID=$(getent group "$SYSTEM_USER" | cut -d: -f3)
 
 if [ "${CURRENT_UID}" != "${TARGET_UID}" ]; then
-    echo "[*] Adjusting ${APP_USER} UID: ${CURRENT_UID} -> ${TARGET_UID}" >&2
-    usermod -u "${TARGET_UID}" "$APP_USER"
+    echo "[*] Adjusting ${SYSTEM_USER} UID: ${CURRENT_UID} -> ${TARGET_UID}" >&2
+    usermod -u "${TARGET_UID}" "$SYSTEM_USER"
 fi
 if [ "${CURRENT_GID}" != "${TARGET_GID}" ]; then
-    echo "[*] Adjusting ${APP_USER} GID: ${CURRENT_GID} -> ${TARGET_GID}" >&2
-    groupmod -g "${TARGET_GID}" "$APP_USER"
-    usermod -g "${TARGET_GID}" "$APP_USER"
+    echo "[*] Adjusting ${SYSTEM_USER} GID: ${CURRENT_GID} -> ${TARGET_GID}" >&2
+    groupmod -g "${TARGET_GID}" "$SYSTEM_USER"
+    usermod -g "${TARGET_GID}" "$SYSTEM_USER"
 fi
 
 # ===============================================
 # Fix ownership of home directory and workspace
 # ===============================================
 
-APP_HOME="/home/${APP_USER}"
+APP_HOME="/home/${SYSTEM_USER}"
 echo "[*] Fixing ownership of home directory and workspace" >&2
 chown -R "${TARGET_UID}:${TARGET_GID}" "$APP_HOME" 2>/dev/null || true
 chown "${TARGET_UID}:${TARGET_GID}" /workspace 2>/dev/null || true
@@ -100,12 +102,12 @@ ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 # ===============================================
 
 echo "[*] Checking mise tools..." >&2
-gosu "$APP_USER" mise trust / 2>&1 || true
-gosu "$APP_USER" mise install || echo "[!] mise install encountered errors (check config or network)" >&2
+gosu "$SYSTEM_USER" mise trust / 2>&1 || true
+gosu "$SYSTEM_USER" mise install || echo "[!] mise install encountered errors (check config or network)" >&2
 
 # ===============================================
 # Execute command as user
 # ===============================================
 
 echo "[*] Executing command: $*" >&2
-exec gosu "$APP_USER" "$@"
+exec gosu "$SYSTEM_USER" "$@"

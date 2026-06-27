@@ -72,6 +72,19 @@ RUN set -eux; \
     bun --version
 
 # ============================================
+# Create unified system user
+# ============================================
+RUN userdel -r node && \
+    groupadd -g 1000 opencode && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
+    mkdir -p /workspace /mise && \
+    ln -s /workspace /home/opencode/workspace && \
+    chown -R 1000:1000 /workspace /mise /home/opencode
+
+COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV SYSTEM_USER=opencode
+
+# ============================================
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
@@ -83,7 +96,7 @@ ARG OPENCODE_SHA256=e3951c7f35f4b8c8f27a3185690be5244a5012b6f15a538b5d600e5b946b
 # ============================================
 FROM base AS opencode
 
-ENV APP_USER=opencode
+ENV APP=opencode
 
 ARG OPENCODE_VERSION
 ARG OPENCODE_SHA256
@@ -95,17 +108,6 @@ RUN set -eux; \
     npm install -g /tmp/opencode-ai.tgz && \
     rm /tmp/opencode-ai.tgz && \
     npm cache clean --force
-
-# Remove default node user and create opencode user with UID 1000
-RUN userdel -r node && \
-    groupadd -g 1000 opencode && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
-    mkdir -p /workspace /mise && \
-    ln -s /workspace /home/opencode/workspace && \
-    chown -R 1000:1000 /workspace /mise /home/opencode
-
-# Runtime entrypoint
-COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
 
 EXPOSE 4096
 WORKDIR /workspace
@@ -119,7 +121,7 @@ CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096", "--print-lo
 # ============================================
 FROM base AS openchamber
 
-ENV APP_USER=openchamber
+ENV APP=openchamber
 
 ARG OPENCODE_VERSION
 ARG OPENCODE_SHA256
@@ -143,20 +145,9 @@ RUN set -eux; \
     rm /tmp/openchamber-web.tgz && \
     npm cache clean --force
 
-# Remove default node user and create openchamber user with UID 1000
-RUN userdel -r node && \
-    groupadd -g 1000 openchamber && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash openchamber && \
-    mkdir -p /workspace /mise && \
-    ln -s /workspace /home/openchamber/workspace && \
-    chown -R 1000:1000 /workspace /mise /home/openchamber
-
-# Runtime entrypoint
-COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
-
 EXPOSE 3000
 WORKDIR /workspace
-VOLUME ["/home/openchamber/.config/openchamber", "/mise"]
+VOLUME ["/home/opencode/.config/openchamber", "/mise"]
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["openchamber", "serve", "--foreground", "--port", "3000", "--host", "0.0.0.0"]
