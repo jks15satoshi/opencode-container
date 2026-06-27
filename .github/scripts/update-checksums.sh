@@ -125,6 +125,45 @@ fi
 echo ""
 
 # --------------------------------------------------
+# bun (global ARG)
+# --------------------------------------------------
+echo "=== bun ==="
+current_bun_version=$(sed -n 's/^ARG BUN_VERSION=\(.*\)/\1/p' "$DOCKERFILE")
+if [ -z "$current_bun_version" ]; then
+    echo "  WARNING: BUN_VERSION not found, skipping"
+else
+    echo "  Version: $current_bun_version"
+    # amd64
+    bun_amd64_url="https://github.com/oven-sh/bun/releases/download/bun-v${current_bun_version}/bun-linux-x64.zip"
+    new_sha256_amd64=$(curl -fsSL "$bun_amd64_url" 2>/dev/null | sha256sum | awk '{print $1}') || {
+        echo "  ERROR: Failed to fetch bun-linux-x64.zip for v${current_bun_version}"
+        exit 1
+    }
+    echo "  SHA256 amd64: $new_sha256_amd64"
+    current_sha256_amd64=$(sed -n 's/^ARG BUN_SHA256_AMD64=\(.*\)/\1/p' "$DOCKERFILE")
+    if [ "$new_sha256_amd64" != "$current_sha256_amd64" ]; then
+        replace_arg_in_dockerfile "BUN_SHA256_AMD64" "$new_sha256_amd64"
+        echo "  ✅ Updated BUN_SHA256_AMD64"
+        updated=true
+    fi
+    # arm64
+    bun_arm64_url="https://github.com/oven-sh/bun/releases/download/bun-v${current_bun_version}/bun-linux-aarch64.zip"
+    new_sha256_arm64=$(curl -fsSL "$bun_arm64_url" 2>/dev/null | sha256sum | awk '{print $1}') || {
+        echo "  ERROR: Failed to fetch bun-linux-aarch64.zip for v${current_bun_version}"
+        exit 1
+    }
+    echo "  SHA256 arm64: $new_sha256_arm64"
+    current_sha256_arm64=$(sed -n 's/^ARG BUN_SHA256_ARM64=\(.*\)/\1/p' "$DOCKERFILE")
+    if [ "$new_sha256_arm64" != "$current_sha256_arm64" ]; then
+        replace_arg_in_dockerfile "BUN_SHA256_ARM64" "$new_sha256_arm64"
+        echo "  ✅ Updated BUN_SHA256_ARM64"
+        updated=true
+    fi
+fi
+
+echo ""
+
+# --------------------------------------------------
 # Sync OPENCODE_VERSION to npm latest
 # --------------------------------------------------
 echo "=== sync OPENCODE_VERSION to latest ==="

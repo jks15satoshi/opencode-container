@@ -5,6 +5,11 @@
 # ============================================
 FROM node:26-trixie-slim@sha256:a1d9d671994fc2d26e297ac56b4b1522a8bc7fa71c43b14cd1b1fe6c5116f7dc AS base
 
+# renovate: datasource=npm depName=bun
+ARG BUN_VERSION=1.3.14
+ARG BUN_SHA256_AMD64=951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f
+ARG BUN_SHA256_ARM64=a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b
+
 # Install common agent tools / dev dependencies + gosu for privilege dropping
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -45,6 +50,26 @@ ENV MISE_TRUSTED_CONFIG_PATHS="/"
 ENV PATH="/mise/shims:${PATH}"
 
 RUN curl -fsSL https://mise.run | sh
+
+# Install Bun for plugin auto-install
+ARG TARGETARCH
+ARG BUN_VERSION
+ARG BUN_SHA256_AMD64
+ARG BUN_SHA256_ARM64
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+    amd64) BUN_ARCH="x64"; BUN_SHA256="${BUN_SHA256_AMD64}" ;; \
+    arm64) BUN_ARCH="aarch64"; BUN_SHA256="${BUN_SHA256_ARM64}" ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${BUN_ARCH}.zip" \
+    -o /tmp/bun.zip; \
+    echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c; \
+    unzip -q -o /tmp/bun.zip -d /tmp/bun-extract; \
+    cp /tmp/bun-extract/bun /usr/local/bin/bun; \
+    chmod +x /usr/local/bin/bun; \
+    rm -rf /tmp/bun.zip /tmp/bun-extract; \
+    bun --version
 
 # ============================================
 # Global build arguments
