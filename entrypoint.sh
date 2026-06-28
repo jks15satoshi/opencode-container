@@ -105,9 +105,32 @@ SSH_DIR="${APP_HOME}/.ssh"
 if [ -d "$SSH_DIR" ]; then
     echo "[*] Fixing SSH directory permissions" >&2
     chmod 700 "$SSH_DIR" 2>/dev/null || true
-    find "$SSH_DIR" -maxdepth 1 -type f -name "id_*" ! -name "*.pub" -exec chmod 600 {} \; 2>/dev/null || true
-    find "$SSH_DIR" -maxdepth 1 -type f \( -name "*.pub" -o -name "known_hosts" -o -name "config" \) -exec chmod 644 {} \; 2>/dev/null || true
-    find "$SSH_DIR" -maxdepth 1 -type f -name "authorized_keys" -exec chmod 600 {} \; 2>/dev/null || true
+
+    # Fix writable files normally
+    find "$SSH_DIR" -maxdepth 1 -type f -writable -name "id_*" ! -name "*.pub" -exec chmod 600 {} + 2>/dev/null || true
+    find "$SSH_DIR" -maxdepth 1 -type f -writable \( -name "*.pub" -o -name "known_hosts" -o -name "config" \) -exec chmod 644 {} + 2>/dev/null || true
+    find "$SSH_DIR" -maxdepth 1 -type f -writable -name "authorized_keys" -exec chmod 600 {} + 2>/dev/null || true
+
+    # Copy read-only private keys to writable location
+    MOUNTED_DIR="${SSH_DIR}/mounted"
+    find "$SSH_DIR" -maxdepth 1 -type f ! -writable -name "id_*" ! -name "*.pub" 2>/dev/null | while read -r key; do
+        echo "[!] Found read-only SSH key: $(basename "$key")" >&2
+        echo "[*] Copying read-only SSH key to writable location: $(basename "$key")" >&2
+        [ ! -d "$MOUNTED_DIR" ] && mkdir -p "$MOUNTED_DIR" && chmod 700 "$MOUNTED_DIR"
+        cp "$key" "$MOUNTED_DIR/"
+        chmod 600 "$MOUNTED_DIR/$(basename "$key")"
+    done
+
+    # If keys were copied, prepend IdentityFile entries to ssh config
+    if [ -d "$MOUNTED_DIR" ] && [ -n "$(find "$MOUNTED_DIR" -type f 2>/dev/null)" ]; then
+        echo "[*] Updating SSH config with mounted key references" >&2
+        SSH_CONFIG="${SSH_DIR}/config"
+        {
+            find "$MOUNTED_DIR" -type f -exec echo "IdentityFile {}" \;
+            [ -f "$SSH_CONFIG" ] && grep -v '^IdentityFile' "$SSH_CONFIG"
+        } >"${SSH_CONFIG}.tmp" && mv "${SSH_CONFIG}.tmp" "$SSH_CONFIG"
+        chmod 644 "$SSH_CONFIG" 2>/dev/null || true
+    fi
 fi
 
 # ===============================================
