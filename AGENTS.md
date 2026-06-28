@@ -47,7 +47,18 @@ The global `OPENCODE_VERSION` / `OPENCODE_SHA256` are placed **after** the `base
 
 Both stages install via npm tarball with `sha256sum` verification, then `npm cache clean --force`. The openchamber stage additionally installs `@openchamber/web`. The base stage removes the default `node` user and creates a unified `opencode` user (UID 1000) shared by both images.
 
-Both stages use a single `entrypoint.sh` at repo root, driven by `APP` env var set in each Dockerfile stage. The entrypoint handles privilege-drop logic and runs `mise install` (no-op without user config).
+Both stages use a single `entrypoint.sh` at repo root, driven by `APP` env var set in each Dockerfile stage. The entrypoint handles privilege-drop logic, credential staging from `/secrets/`, and runs `mise install` (no-op without user config). The base stage creates `/secrets/ssh/` directory.
+
+### Credential staging
+
+The entrypoint implements a two-phase credential pipeline:
+
+1. **Stage secrets** (before chown): copies files from `/secrets/ssh/` → `~/.ssh/` and `/secrets/git-credentials` → `~/.git-credentials` with correct permissions (`chmod` only, no `chown`).
+2. **Fix ownership** (after staging): a single `chown -R "$APP_HOME"` covers all staged files plus pre-existing content.
+
+If `/secrets` directory does not exist, falls back to legacy behavior (direct `~/.ssh/` and `~/.git-credentials` bind mounts, chmod in-place).
+
+**Section order matters**: staging MUST precede the global `chown -R`; reversing would leave staged files owned by root.
 
 ## Version management (Renovate)
 
@@ -86,7 +97,7 @@ Builds as **root**, drops privileges via `gosu` at runtime:
 2. **Auto-detection**: compares device IDs of `/` vs `/workspace` via `stat -c '%D'` — differing devices means a bind mount exists, so it reads the mount owner. Without a bind mount, falls through to defaults.
 3. **Root refusal**: exits if UID or GID == 0
 4. **Validation**: non-negative integer check; non-numeric values rejected
-5. **Permission patching**: after determining the target UID/GID, the entrypoint runs `usermod`/`groupmod` to rebind the container user, then `chown` to fix ownership of the home directory and `/workspace`, recreates the `workspace` symlink inside the home directory, and runs `mise install` (no-op without user config) — all before `exec gosu`
+5. **Permission patching**: after determining the target UID/GID, the entrypoint runs `usermod`/`groupmod` to rebind the container user, stages secrets from `/secrets/` (if present), then runs a single `chown -R` to fix ownership of the home directory (covering staged files, legacy mounts, and pre-existing content). Also fixes `/workspace` and `/mise` ownership, recreates the `workspace` symlink, and runs `mise install` — all before `exec gosu`
 
 ## Per-image auth quirks
 
@@ -100,4 +111,6 @@ Builds as **root**, drops privileges via `gosu` at runtime:
 - `npm cache clean --force` runs after each install in the build stage
 - The `Dockerfile` comment `# renovate: datasource=npm depName=...` must precede the version ARG for Renovate regex matching to work
 - Global `OPENCODE_VERSION` / `OPENCODE_SHA256` ARGs are placed after the `base` stage to preserve base stage layer cache
+- In `entrypoint.sh`, the "Stage secrets" section must execute before "Fix ownership" — swapping them breaks ownership of staged files
+- SSH keys should be mounted at `/secrets/ssh/` (not directly to `~/.ssh/`) to avoid read-only filesystem permission failures
 
