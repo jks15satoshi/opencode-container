@@ -301,7 +301,7 @@ The following environment variables are not upstream-supported configuration opt
 | `/home/opencode/.config/openchamber`   | OpenChamber configuration directory. Stores user configuration info, session data, Git credential config, logs, etc.                                                                  |
 | `/home/opencode/.config/opencode`      | OpenCode configuration directory. Stores user config files and plugin files.<br/> Only needs to be mounted in standalone deployment.                                                  |
 | `/home/opencode/.local/share/opencode` | OpenCode data directory. Stores model authentication info, session data, and logs.<br/> Only needs to be mounted in standalone deployment.                                            |
-| `/home/opencode/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key when using Git operations in OpenChamber with SSH authentication.                |
+| `/home/opencode/.ssh/id_ed25519`       | SSH private key file. Used for SSH authentication in Git operations.<br/> Mount your SSH private key (read-only recommended, e.g. `:ro`) when using Git operations in OpenChamber with SSH authentication.                |
 | `/home/opencode/.git-credentials`      | Git credentials file. Used for HTTPS authentication in Git operations.<br/> Mount your Git credentials file when using Git operations in OpenChamber with token-based authentication. |
 | `/mise`                                   | Mise data directory. Stores Mise config and installed development tools. <br/> See [Managing Development Tools](#managing-development-tools).                                         |
 

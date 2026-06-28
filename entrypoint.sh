@@ -98,6 +98,19 @@ chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
 ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 
 # ===============================================
+# Fix SSH directory and key permissions
+# ===============================================
+
+SSH_DIR="${APP_HOME}/.ssh"
+if [ -d "$SSH_DIR" ]; then
+    echo "[*] Fixing SSH directory permissions" >&2
+    chmod 700 "$SSH_DIR" 2>/dev/null || true
+    find "$SSH_DIR" -maxdepth 1 -type f -name "id_*" ! -name "*.pub" -exec chmod 600 {} \; 2>/dev/null || true
+    find "$SSH_DIR" -maxdepth 1 -type f \( -name "*.pub" -o -name "known_hosts" -o -name "config" \) -exec chmod 644 {} \; 2>/dev/null || true
+    find "$SSH_DIR" -maxdepth 1 -type f -name "authorized_keys" -exec chmod 600 {} \; 2>/dev/null || true
+fi
+
+# ===============================================
 # Install devtools via Mise (if available)
 # ===============================================
 
