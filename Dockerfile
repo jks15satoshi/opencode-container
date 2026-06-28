@@ -77,9 +77,9 @@ RUN set -eux; \
 RUN userdel -r node && \
     groupadd -g 1000 opencode && \
     useradd -m -u 1000 -g 1000 -s /bin/bash opencode && \
-    mkdir -p /workspace /mise && \
+    mkdir -p /workspace /mise /secrets/ssh && \
     ln -s /workspace /home/opencode/workspace && \
-    chown -R 1000:1000 /workspace /mise /home/opencode
+    chown -R 1000:1000 /workspace /mise /home/opencode /secrets
 
 COPY --chmod=+x entrypoint.sh /usr/local/bin/entrypoint.sh
 ENV SYSTEM_USER=opencode
