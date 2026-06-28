@@ -86,21 +86,10 @@ if [ "${CURRENT_GID}" != "${TARGET_GID}" ]; then
 fi
 
 # ===============================================
-# Fix ownership of home directory and workspace
-# ===============================================
-
-APP_HOME="/home/${SYSTEM_USER}"
-echo "[*] Fixing ownership of home directory and workspace" >&2
-chown -R "${TARGET_UID}:${TARGET_GID}" "$APP_HOME" 2>/dev/null || true
-chown "${TARGET_UID}:${TARGET_GID}" /workspace 2>/dev/null || true
-chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
-
-ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
-
-# ===============================================
 # Stage secrets into writable locations
 # ===============================================
 
+APP_HOME="/home/${SYSTEM_USER}"
 SECRETS_DIR="/secrets"
 
 if [ -d "$SECRETS_DIR" ]; then
@@ -111,8 +100,8 @@ if [ -d "$SECRETS_DIR" ]; then
         mkdir -p "$SSH_DIR"
         chmod 700 "$SSH_DIR"
 
+        shopt -s nullglob
         for src in "${SECRETS_DIR}/ssh"/*; do
-            [ -f "$src" ] || continue
             dst="${SSH_DIR}/$(basename "$src")"
             cp "$src" "$dst"
 
@@ -124,7 +113,7 @@ if [ -d "$SECRETS_DIR" ]; then
                     chmod 644 "$dst"
                 fi
                 ;;
-            *.pub | known_hosts | config)
+            known_hosts | config)
                 chmod 644 "$dst"
                 ;;
             authorized_keys)
@@ -162,6 +151,17 @@ else
         chmod 600 "$GIT_CREDS" 2>/dev/null || true
     fi
 fi
+
+# ===============================================
+# Fix ownership of home directory and workspace
+# ===============================================
+
+echo "[*] Fixing ownership of home directory and workspace" >&2
+chown -R "${TARGET_UID}:${TARGET_GID}" "$APP_HOME" 2>/dev/null || true
+chown "${TARGET_UID}:${TARGET_GID}" /workspace 2>/dev/null || true
+chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
+
+ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 
 # ===============================================
 # Install devtools via Mise (if available)
