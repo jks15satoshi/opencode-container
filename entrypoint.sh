@@ -98,38 +98,68 @@ chown "${TARGET_UID}:${TARGET_GID}" /mise 2>/dev/null || true
 ln -sfn /workspace "${APP_HOME}/workspace" 2>/dev/null || true
 
 # ===============================================
-# Fix SSH directory and key permissions
+# Stage secrets into writable locations
 # ===============================================
 
-SSH_DIR="${APP_HOME}/.ssh"
-if [ -d "$SSH_DIR" ]; then
-    echo "[*] Fixing SSH directory permissions" >&2
-    chmod 700 "$SSH_DIR" 2>/dev/null || true
+SECRETS_DIR="/secrets"
 
-    # Fix writable files normally
-    find "$SSH_DIR" -maxdepth 1 -type f -writable -name "id_*" ! -name "*.pub" -exec chmod 600 {} + 2>/dev/null || true
-    find "$SSH_DIR" -maxdepth 1 -type f -writable \( -name "*.pub" -o -name "known_hosts" -o -name "config" \) -exec chmod 644 {} + 2>/dev/null || true
-    find "$SSH_DIR" -maxdepth 1 -type f -writable -name "authorized_keys" -exec chmod 600 {} + 2>/dev/null || true
+if [ -d "$SECRETS_DIR" ]; then
+    # SSH keys: /secrets/ssh/ → ~/.ssh/
+    if [ -d "${SECRETS_DIR}/ssh" ] && [ -n "$(ls -A "${SECRETS_DIR}/ssh" 2>/dev/null)" ]; then
+        echo "[*] Staging SSH keys from ${SECRETS_DIR}/ssh" >&2
+        SSH_DIR="${APP_HOME}/.ssh"
+        mkdir -p "$SSH_DIR"
+        chmod 700 "$SSH_DIR"
 
-    # Copy read-only private keys to writable location
-    MOUNTED_DIR="${SSH_DIR}/mounted"
-    find "$SSH_DIR" -maxdepth 1 -type f ! -writable -name "id_*" ! -name "*.pub" 2>/dev/null | while read -r key; do
-        echo "[!] Found read-only SSH key: $(basename "$key")" >&2
-        echo "[*] Copying read-only SSH key to writable location: $(basename "$key")" >&2
-        [ ! -d "$MOUNTED_DIR" ] && mkdir -p "$MOUNTED_DIR" && chmod 700 "$MOUNTED_DIR"
-        cp "$key" "$MOUNTED_DIR/"
-        chmod 600 "$MOUNTED_DIR/$(basename "$key")"
-    done
+        for src in "${SECRETS_DIR}/ssh"/*; do
+            [ -f "$src" ] || continue
+            dst="${SSH_DIR}/$(basename "$src")"
+            cp "$src" "$dst"
 
-    # If keys were copied, prepend IdentityFile entries to ssh config
-    if [ -d "$MOUNTED_DIR" ] && [ -n "$(find "$MOUNTED_DIR" -type f 2>/dev/null)" ]; then
-        echo "[*] Updating SSH config with mounted key references" >&2
-        SSH_CONFIG="${SSH_DIR}/config"
-        {
-            find "$MOUNTED_DIR" -type f -exec echo "IdentityFile {}" \;
-            [ -f "$SSH_CONFIG" ] && grep -v '^IdentityFile' "$SSH_CONFIG"
-        } >"${SSH_CONFIG}.tmp" && mv "${SSH_CONFIG}.tmp" "$SSH_CONFIG"
-        chmod 644 "$SSH_CONFIG" 2>/dev/null || true
+            case "$(basename "$src")" in
+            id_*)
+                if [[ "$src" != *.pub ]]; then
+                    chmod 600 "$dst"
+                else
+                    chmod 644 "$dst"
+                fi
+                ;;
+            *.pub | known_hosts | config)
+                chmod 644 "$dst"
+                ;;
+            authorized_keys)
+                chmod 600 "$dst"
+                ;;
+            *)
+                chmod 600 "$dst"
+                ;;
+            esac
+            echo "[*]   $(basename "$src") -> ${dst}" >&2
+        done
+    fi
+
+    # Git credentials: /secrets/git-credentials → ~/.git-credentials
+    if [ -f "${SECRETS_DIR}/git-credentials" ]; then
+        echo "[*] Staging Git credentials from ${SECRETS_DIR}/git-credentials" >&2
+        GIT_CREDS="${APP_HOME}/.git-credentials"
+        cp "${SECRETS_DIR}/git-credentials" "$GIT_CREDS"
+        chmod 600 "$GIT_CREDS"
+    fi
+else
+    # Fallback: legacy direct ~/.ssh/ mount
+    SSH_DIR="${APP_HOME}/.ssh"
+    if [ -d "$SSH_DIR" ]; then
+        echo "[*] Fixing SSH directory permissions (legacy mount)" >&2
+        chmod 700 "$SSH_DIR" 2>/dev/null || true
+        find "$SSH_DIR" -maxdepth 1 -type f -name "id_*" ! -name "*.pub" -exec chmod 600 {} + 2>/dev/null || true
+        find "$SSH_DIR" -maxdepth 1 -type f \( -name "*.pub" -o -name "known_hosts" -o -name "config" \) -exec chmod 644 {} + 2>/dev/null || true
+        find "$SSH_DIR" -maxdepth 1 -type f -name "authorized_keys" -exec chmod 600 {} + 2>/dev/null || true
+    fi
+
+    # Fallback: legacy direct ~/.git-credentials mount
+    GIT_CREDS="${APP_HOME}/.git-credentials"
+    if [ -f "$GIT_CREDS" ]; then
+        chmod 600 "$GIT_CREDS" 2>/dev/null || true
     fi
 fi
 
