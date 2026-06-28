@@ -301,7 +301,7 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 | `/home/opencode/.config/openchamber`   | OpenChamber 配置目录。存放用户配置信息、会话数据、Git 凭证配置、日志等。                                                                            |
 | `/home/opencode/.config/opencode`      | OpenCode 配置目录。存放用户配置文件与插件文件。<br/> 仅单独部署时需要挂载。                                                                         |
 | `/home/opencode/.local/share/opencode` | OpenCode 数据目录。存放模型认证信息、会话数据和日志。<br/> 仅单独部署时需要挂载。                                                                   |
-| `/home/opencode/.ssh/id_ed25519`       | SSH 私钥文件。用于 Git 操作的 SSH 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 SSH 时，需要挂载你的 SSH 私钥文件。     |
+| `/home/opencode/.ssh/id_ed25519`       | SSH 私钥文件。用于 Git 操作的 SSH 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 SSH 时，需要挂载你的 SSH 私钥文件（建议只读挂载，如 `:ro`）。     |
 | `/home/opencode/.git-credentials`      | Git 凭证文件。用于 Git 操作的 HTTPS 认证。<br/> 当需要在 OpenChamber 中使用 Git 操作时，且配置 Git 认证方式为 token 时，需要挂载你的 Git 凭证文件。 |
 | `/mise`                                   | Mise 数据目录。存放 Mise 配置和安装的开发工具。<br/> 详见[管理开发工具](#管理开发工具)。                                                            |
 
