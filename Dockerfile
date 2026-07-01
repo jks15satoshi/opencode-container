@@ -88,7 +88,7 @@ ENV SYSTEM_USER=opencode
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.17.12
+ARG OPENCODE_VERSION=1.17.13
 ARG OPENCODE_SHA256=cbd74ca0a60520c8547c5c91658593c427f94257948418f4e5ee827d3540716d
 
 # ============================================
