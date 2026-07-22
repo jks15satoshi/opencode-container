@@ -136,7 +136,7 @@ RUN set -eux; \
 
 # Install OpenChamber
 # renovate: datasource=npm depName=@openchamber/web
-ARG OPENCHAMBER_VERSION=1.16.2
+ARG OPENCHAMBER_VERSION=1.16.3
 ARG OPENCHAMBER_SHA256=f950d0a4c9e9e410f472b9ec3a16752b7ce0bd127ddec57d3f670b0d078a308b
 RUN set -eux; \
     curl -fsSL "https://registry.npmjs.org/@openchamber/web/-/web-${OPENCHAMBER_VERSION}.tgz" -o /tmp/openchamber-web.tgz; \
