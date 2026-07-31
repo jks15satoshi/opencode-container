@@ -3,7 +3,7 @@
 # ============================================
 # Base stage
 # ============================================
-FROM node:26-trixie-slim@sha256:715e55e4b84e4bb0ff48e49b398a848f08e55daed8eb6a0ea1839ae53bc57583 AS base
+FROM node:26-trixie-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a AS base
 
 # renovate: datasource=npm depName=bun
 ARG BUN_VERSION=1.3.14
@@ -88,8 +88,8 @@ ENV SYSTEM_USER=opencode
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.18.9
-ARG OPENCODE_SHA256=d60025d789fd56501a372bdc788afd9af79a2c9b71e43a7ea83611fa3b51f329
+ARG OPENCODE_VERSION=1.18.10
+ARG OPENCODE_SHA256=c135d5cb88407888f7d67ddb4a2e30f27109a8b9e8922282674b8abb34226bd8
 
 # ============================================
 # Stage: OpenCode
