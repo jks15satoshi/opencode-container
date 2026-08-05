@@ -23,5 +23,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: update dependency SHA256 checksums"
-          commit_user_name: "opencode-checksum-bot"
-          commit_user_email: "checksum-bot@opencode.ai"
+          commit_user_name: "renovate[bot]"
+          commit_user_email: "29139614+renovate[bot]@users.noreply.github.com"
