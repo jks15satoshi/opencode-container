@@ -7,8 +7,8 @@ FROM node:26-trixie-slim@sha256:4ebb5ace66f15a24c14c492e01a8beeed4fddf970a856109
 
 # renovate: datasource=npm depName=bun
 ARG BUN_VERSION=1.4.0
-ARG BUN_SHA256_AMD64=951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f
-ARG BUN_SHA256_ARM64=a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b
+ARG BUN_SHA256_AMD64=2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452
+ARG BUN_SHA256_ARM64=4b1a332ee861983eb93bcfe6f770fff94e3e31b2c388bdaea3c8ed35e58eed0e
 
 # Install common agent tools / dev dependencies + gosu for privilege dropping
 RUN apt-get update && apt-get install -y --no-install-recommends \
