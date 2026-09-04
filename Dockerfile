@@ -6,7 +6,7 @@
 FROM node:26-trixie-slim@sha256:c0753125a3789977aefe869cbebccf70e3cfd7ea84ca48547458f02e4f1d7146 AS base
 
 # renovate: datasource=npm depName=bun
-ARG BUN_VERSION=1.4.0
+ARG BUN_VERSION=1.4.1
 ARG BUN_SHA256_AMD64=2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452
 ARG BUN_SHA256_ARM64=4b1a332ee861983eb93bcfe6f770fff94e3e31b2c388bdaea3c8ed35e58eed0e
 
