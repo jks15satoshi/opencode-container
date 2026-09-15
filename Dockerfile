@@ -88,8 +88,8 @@ ENV SYSTEM_USER=opencode
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.18.30
-ARG OPENCODE_SHA256=3a97a99230d07fcbe6fd1ea2a001556297225d57f55d7880d3c9e6e29960ae90
+ARG OPENCODE_VERSION=1.18.31
+ARG OPENCODE_SHA256=b6baa53003cd2e096981474ba9461a33aba2e6948b2b4b08c4aa1a88e6dc1b59
 
 # ============================================
 # Stage: OpenCode
@@ -137,7 +137,7 @@ RUN set -eux; \
 # Install OpenChamber
 # renovate: datasource=npm depName=@openchamber/web
 ARG OPENCHAMBER_VERSION=1.23.2
-ARG OPENCHAMBER_SHA256=42b7c253712904f948dce14b72c648c525b470797305e8cc6e0cf1112116fadc
+ARG OPENCHAMBER_SHA256=8d99a57249b29bf2442b830af97c5c7363089a25473f3e4693a08afbcba7f242
 RUN set -eux; \
     curl -fsSL "https://registry.npmjs.org/@openchamber/web/-/web-${OPENCHAMBER_VERSION}.tgz" -o /tmp/openchamber-web.tgz; \
     echo "${OPENCHAMBER_SHA256}  /tmp/openchamber-web.tgz" | sha256sum -c; \
