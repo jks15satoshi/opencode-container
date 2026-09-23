@@ -3,7 +3,7 @@
 # ============================================
 # Base stage
 # ============================================
-FROM node:26-trixie-slim@sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5 AS base
+FROM node:26-trixie-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1 AS base
 
 # renovate: datasource=npm depName=bun
 ARG BUN_VERSION=1.4.2
