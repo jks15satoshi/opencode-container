@@ -260,7 +260,7 @@ Additionally, OpenChamber needs to be instructed via the `OPENCODE_SKIP_START=tr
 > [!TIP]
 > When OpenChamber connects to an external OpenCode server (`OPENCODE_SKIP_START=true` + `OPENCODE_HOST`), we recommend explicitly setting the same `OPENCODE_SERVER_PASSWORD` — and the same `OPENCODE_SERVER_USERNAME` if you changed it — on **both** services. OpenChamber uses these credentials for its HTTP Basic authentication to the external server; if they are missing or do not match, `/api/*` requests (including the `/api/event` stream) return `401`.
 >
-> OpenCode has exhibited an unintended behaviour where, with `OPENCODE_SERVER_PASSWORD` unset, `opencode serve` enforced a random Basic-auth password (see [anomalyco/opencode#50370](https://github.com/anomalyco/opencode/issues/50370); the official documentation describes the password as opt-in, i.e. unset means unsecured: [Server](https://opencode.ai/docs/server/#authentication), [Web](https://opencode.ai/docs/web/)). This can make the combined setup unstable; configuring the same password on both services avoids it.
+> OpenCode has exhibited an unintended behavior where, with `OPENCODE_SERVER_PASSWORD` unset, `opencode serve` enforced a random Basic-auth password (see [anomalyco/opencode#50370](https://github.com/anomalyco/opencode/issues/50370); the official documentation describes the password as opt-in, i.e. unset means unsecured: [Server](https://opencode.ai/docs/server/#authentication), [Web](https://opencode.ai/docs/web/)). This can make the combined setup unstable; configuring the same password on both services avoids it.
 
 ## Configuration Reference
 
