@@ -41,7 +41,7 @@ Build args for version pinning:
 | Global | `OPENCODE_VERSION` / `OPENCODE_SHA256` | Defined after `base` stage, inherited by `opencode` and `openchamber` via `ARG` (no `=`) |
 | `openchamber` | `OPENCHAMBER_VERSION` / `OPENCHAMBER_SHA256` | Stage-specific |
 
-The global `OPENCODE_VERSION` / `OPENCODE_SHA256` are placed **after** the `base` stage to avoid cache invalidation of the base stage when only the opencode-ai version changes.
+The global `OPENCODE_VERSION` / `OPENCODE_SHA256` are placed **after** the `base` stage to avoid cache invalidation of the base stage when only the `@opencode/cli` version changes.
 
 **Base stage** (`node:26-trixie-slim` pinned by SHA256): extensive dev tooling (build-essential, cmake, libssl-dev, git, curl, jq, python3, ripgrep, gosu, etc.), npm-global LSPs (bash-language-server, yaml-language-server, dockerfile-language-server-nodejs, prettier), and [mise](https://mise.en.dev) for language runtime management.
 
@@ -63,7 +63,7 @@ If `/secrets` directory does not exist, falls back to legacy behavior (direct `~
 ## Version management (Renovate)
 
 `renovate.json` uses two standalone regex `customManagers` targeting `Dockerfile`:
-- **opencode-ai**: single dep `opencode-ai` → global `ARG OPENCODE_VERSION=`
+- **@opencode/cli**: single dep `@opencode/cli` → global `ARG OPENCODE_VERSION=`
 - **@openchamber/web**: single dep `@openchamber/web` → stage `ARG OPENCHAMBER_VERSION=`
 
 Each creates an independent PR with `platformAutomerge: true`.

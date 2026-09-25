@@ -11,7 +11,7 @@ set -euo pipefail
 # openchamber stage OPENCHAMBER_VERSION/SHA256.
 #
 # When OPENCHAMBER_VERSION changes, also syncs the global
-# OPENCODE_VERSION to the latest opencode-ai release.
+# OPENCODE_VERSION to the latest @opencode/cli release.
 #
 # Usage:
 #   .github/scripts/update-checksums.sh [path/to/Dockerfile]
@@ -49,9 +49,9 @@ replace_arg_in_dockerfile() {
 }
 
 # --------------------------------------------------
-# opencode-ai (global ARG)
+# @opencode/cli (global ARG)
 # --------------------------------------------------
-echo "=== opencode-ai ==="
+echo "=== @opencode/cli ==="
 
 current_version=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p' "$DOCKERFILE")
 if [ -z "$current_version" ]; then
@@ -59,16 +59,16 @@ if [ -z "$current_version" ]; then
 else
     echo "  Version: $current_version"
 
-    tarball_url="https://registry.npmjs.org/opencode-ai/-/opencode-ai-${current_version}.tgz"
+    tarball_url="https://registry.npmjs.org/@opencode/cli/-/cli-${current_version}.tgz"
     echo "  Fetching: $tarball_url"
 
     new_sha256=$(curl -fsSL "$tarball_url" 2>/dev/null | sha256sum | awk '{print $1}') || {
-        echo "  ERROR: Failed to fetch tarball for opencode-ai v${current_version}"
+        echo "  ERROR: Failed to fetch tarball for @opencode/cli v${current_version}"
         exit 1
     }
 
     if [ -z "$new_sha256" ]; then
-        echo "  ERROR: Empty checksum for opencode-ai"
+        echo "  ERROR: Empty checksum for @opencode/cli"
         exit 1
     fi
 
@@ -168,8 +168,8 @@ echo ""
 # --------------------------------------------------
 echo "=== sync OPENCODE_VERSION to latest ==="
 
-latest_opencode=$(curl -fsS "https://registry.npmjs.org/opencode-ai/latest" 2>/dev/null | jq -r '.version' 2>/dev/null) || {
-    echo "  WARNING: Failed to query latest opencode-ai version, skipping sync"
+latest_opencode=$(curl -fsS "https://registry.npmjs.org/@opencode%2fcli/latest" 2>/dev/null | jq -r '.version' 2>/dev/null) || {
+    echo "  WARNING: Failed to query latest @opencode/cli version, skipping sync"
 }
 if [ -n "$latest_opencode" ] && [ "$latest_opencode" != "null" ]; then
     current_opencode=$(sed -n 's/^ARG OPENCODE_VERSION=\(.*\)/\1/p' "$DOCKERFILE")
@@ -178,16 +178,16 @@ if [ -n "$latest_opencode" ] && [ "$latest_opencode" != "null" ]; then
 
         replace_arg_in_dockerfile "OPENCODE_VERSION" "$latest_opencode"
 
-        tarball_url="https://registry.npmjs.org/opencode-ai/-/opencode-ai-${latest_opencode}.tgz"
+        tarball_url="https://registry.npmjs.org/@opencode/cli/-/cli-${latest_opencode}.tgz"
         echo "  Fetching: $tarball_url"
 
         new_sha256=$(curl -fsSL "$tarball_url" 2>/dev/null | sha256sum | awk '{print $1}') || {
-            echo "  ERROR: Failed to fetch tarball for opencode-ai v${latest_opencode}"
+            echo "  ERROR: Failed to fetch tarball for @opencode/cli v${latest_opencode}"
             exit 1
         }
 
         if [ -z "$new_sha256" ]; then
-            echo "  ERROR: Empty checksum for opencode-ai v${latest_opencode}"
+            echo "  ERROR: Empty checksum for @opencode/cli v${latest_opencode}"
             exit 1
         fi
 
@@ -199,7 +199,7 @@ if [ -n "$latest_opencode" ] && [ "$latest_opencode" != "null" ]; then
         echo "  OPENCODE_VERSION already at latest ($current_opencode)"
     fi
 else
-    echo "  WARNING: Could not determine latest opencode-ai version, skipping sync"
+    echo "  WARNING: Could not determine latest @opencode/cli version, skipping sync"
 fi
 
 echo ""
