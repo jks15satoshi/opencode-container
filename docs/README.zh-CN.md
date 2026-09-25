@@ -272,7 +272,7 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 
 | 环境变量                   | 说明                                                   | 默认值     |
 | -------------------------- | ------------------------------------------------------ | ---------- |
-| `OPENCODE_SERVER_PASSWORD` | 设置访问 OpenCode 的 HTTP Basic 鉴权密码。OpenCode 2.0.x 下为空时曾被观察到 `serve` 会生成随机密码并强制鉴权，外部访问请显式设置。 | |
+| `OPENCODE_SERVER_PASSWORD` | 设置访问 OpenCode 的 HTTP Basic 鉴权密码。OpenCode 2.0.x 下为空时曾被观察到 `serve` 会生成随机密码并强制鉴权。 | |
 | `OPENCODE_SERVER_USERNAME` | 设置访问 OpenCode 基本认证用户名。                     | `opencode` |
 
 **OpenChamber**

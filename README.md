@@ -272,7 +272,7 @@ OpenCode / OpenChamber images support configuration through environment variable
 
 | Environment Variable       | Description                                                                                 | Default    |
 | -------------------------- | ------------------------------------------------------------------------------------------- | ---------- |
-| `OPENCODE_SERVER_PASSWORD` | Sets the HTTP Basic auth password for accessing OpenCode. On OpenCode 2.0.x, an empty value has been observed to make `serve` generate a random password and enforce auth; set it explicitly for external access. | |
+| `OPENCODE_SERVER_PASSWORD` | Sets the HTTP Basic auth password for accessing OpenCode. On OpenCode 2.0.x, an empty value has been observed to make `serve` generate a random password and enforce auth. | |
 | `OPENCODE_SERVER_USERNAME` | Sets the HTTP Basic auth username for accessing OpenCode.                                   | `opencode` |
 
 **OpenChamber**
