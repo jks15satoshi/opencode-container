@@ -13,7 +13,7 @@
         "/^Dockerfile$/"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>opencode-ai)\\s+ARG OPENCODE_VERSION=(?<currentValue>[^\\s]+)"
+        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>@opencode/cli)\\s+ARG OPENCODE_VERSION=(?<currentValue>[^\\s]+)"
       ]
     },
     {
@@ -38,7 +38,7 @@
   "packageRules": [
     {
       "matchDepNames": [
-        "opencode-ai"
+        "@opencode/cli"
       ],
       "automerge": true,
       "platformAutomerge": true,

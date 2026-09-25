@@ -87,9 +87,9 @@ ENV SYSTEM_USER=opencode
 # ============================================
 # Global build arguments
 # ============================================
-# renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.18.32
-ARG OPENCODE_SHA256=454fbb032ade95a21323891138d4b425573f67631e7e888e516da893dc4be8ba
+# renovate: datasource=npm depName=@opencode/cli
+ARG OPENCODE_VERSION=2.0.16
+ARG OPENCODE_SHA256=bea46ec5702c4d6b7b691da523b6fc5f7e37c9b3a56cfca81b8ee849a2ef7f4a
 
 # ============================================
 # Stage: OpenCode
@@ -103,10 +103,10 @@ ARG OPENCODE_SHA256
 
 # Install OpenCode
 RUN set -eux; \
-    curl -fsSL "https://registry.npmjs.org/opencode-ai/-/opencode-ai-${OPENCODE_VERSION}.tgz" -o /tmp/opencode-ai.tgz; \
-    echo "${OPENCODE_SHA256}  /tmp/opencode-ai.tgz" | sha256sum -c; \
-    npm install -g /tmp/opencode-ai.tgz && \
-    rm /tmp/opencode-ai.tgz && \
+    curl -fsSL "https://registry.npmjs.org/@opencode/cli/-/cli-${OPENCODE_VERSION}.tgz" -o /tmp/opencode-cli.tgz; \
+    echo "${OPENCODE_SHA256}  /tmp/opencode-cli.tgz" | sha256sum -c; \
+    npm install -g /tmp/opencode-cli.tgz && \
+    rm /tmp/opencode-cli.tgz && \
     npm cache clean --force
 
 EXPOSE 4096
@@ -128,10 +128,10 @@ ARG OPENCODE_SHA256
 
 # Install OpenCode (whose CLI is required by OpenChamber)
 RUN set -eux; \
-    curl -fsSL "https://registry.npmjs.org/opencode-ai/-/opencode-ai-${OPENCODE_VERSION}.tgz" -o /tmp/opencode-ai.tgz; \
-    echo "${OPENCODE_SHA256}  /tmp/opencode-ai.tgz" | sha256sum -c; \
-    npm install -g /tmp/opencode-ai.tgz && \
-    rm /tmp/opencode-ai.tgz && \
+    curl -fsSL "https://registry.npmjs.org/@opencode/cli/-/cli-${OPENCODE_VERSION}.tgz" -o /tmp/opencode-cli.tgz; \
+    echo "${OPENCODE_SHA256}  /tmp/opencode-cli.tgz" | sha256sum -c; \
+    npm install -g /tmp/opencode-cli.tgz && \
+    rm /tmp/opencode-cli.tgz && \
     npm cache clean --force
 
 # Install OpenChamber
