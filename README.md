@@ -229,6 +229,8 @@ Choose combined deployment if you have the following needs:
         - OPENCHAMBER_UI_PASSWORD=your_secure_password
         - OPENCODE_SKIP_START=true
         - OPENCODE_HOST=http://opencode:4096
+        - OPENCODE_SERVER_PASSWORD=your_secure_password   # Must match the opencode service
+        # - OPENCODE_SERVER_USERNAME=opencode             # Only if you changed the default username
       volumes:
         - openchamber_config:/home/opencode/.config/openchamber
         - opencode_config:/home/opencode/.config/opencode
@@ -255,6 +257,11 @@ Note that in a combined deployment scenario, OpenCode and OpenChamber must acces
 
 Additionally, OpenChamber needs to be instructed via the `OPENCODE_SKIP_START=true` environment variable not to start a built-in OpenCode instance, and instead connect to an external OpenCode server (specified via `OPENCODE_HOST=http://opencode:4096`).
 
+> [!TIP]
+> When OpenChamber connects to an external OpenCode server (`OPENCODE_SKIP_START=true` + `OPENCODE_HOST`), we recommend explicitly setting the same `OPENCODE_SERVER_PASSWORD` — and the same `OPENCODE_SERVER_USERNAME` if you changed it — on **both** services. OpenChamber uses these credentials for its HTTP Basic authentication to the external server; if they are missing or do not match, `/api/*` requests (including the `/api/event` stream) return `401`.
+>
+> OpenCode has exhibited an unintended behaviour where, with `OPENCODE_SERVER_PASSWORD` unset, `opencode serve` enforced a random Basic-auth password (see [anomalyco/opencode#50370](https://github.com/anomalyco/opencode/issues/50370); the official documentation describes the password as opt-in, i.e. unset means unsecured: [Server](https://opencode.ai/docs/server/#authentication), [Web](https://opencode.ai/docs/web/)). This can make the combined setup unstable; configuring the same password on both services avoids it.
+
 ## Configuration Reference
 
 ### Environment Variables
@@ -265,8 +272,8 @@ OpenCode / OpenChamber images support configuration through environment variable
 
 | Environment Variable       | Description                                                                                 | Default    |
 | -------------------------- | ------------------------------------------------------------------------------------------- | ---------- |
-| `OPENCODE_SERVER_PASSWORD` | Sets the basic auth password for accessing OpenCode. Allows passwordless access when empty. |            |
-| `OPENCODE_SERVER_USERNAME` | Sets the basic auth username for accessing OpenCode.                                        | `opencode` |
+| `OPENCODE_SERVER_PASSWORD` | Sets the HTTP Basic auth password for accessing OpenCode. On OpenCode 2.0.x, an empty value has been observed to make `serve` generate a random password and enforce auth (an unintended upstream behaviour), so set it explicitly for external access. | |
+| `OPENCODE_SERVER_USERNAME` | Sets the HTTP Basic auth username for accessing OpenCode.                                   | `opencode` |
 
 **OpenChamber**
 
@@ -276,6 +283,8 @@ OpenCode / OpenChamber images support configuration through environment variable
 | `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` | Allows unauthenticated LAN access to the OpenChamber web interface.<br/> **Recommended only in trusted network environments.**                                  | `false`   |
 | `OPENCODE_SKIP_START`                   | Skips starting the built-in OpenCode instance in OpenChamber, connecting to an external OpenCode server instead. Requires `OPENCODE_HOST` to be set as well.    | `false`   |
 | `OPENCODE_HOST`                         | Specifies the address of an external OpenCode server (e.g., `http://opencode:4096`).                                                                            |           |
+| `OPENCODE_SERVER_PASSWORD`              | HTTP Basic auth password of the external OpenCode server when `OPENCODE_SKIP_START`/`OPENCODE_HOST` is used. Should match the OpenCode service, otherwise `/api/*` returns `401`. |           |
+| `OPENCODE_SERVER_USERNAME`              | HTTP Basic auth username of the external OpenCode server. Should match the OpenCode service.                                                                    | `opencode` |
 
 The following environment variables are not upstream-supported configuration options but are image-side features and apply to all images:
 

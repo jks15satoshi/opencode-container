@@ -229,6 +229,8 @@ docker run -d --name openchamber \
         - OPENCHAMBER_UI_PASSWORD=your_secure_password
         - OPENCODE_SKIP_START=true
         - OPENCODE_HOST=http://opencode:4096
+        - OPENCODE_SERVER_PASSWORD=your_secure_password   # 必须与 opencode 服务一致
+        # - OPENCODE_SERVER_USERNAME=opencode             # 仅当自定义了默认用户名
       volumes:
         - openchamber_config:/home/opencode/.config/openchamber
         - opencode_config:/home/opencode/.config/opencode
@@ -255,6 +257,11 @@ docker run -d --name openchamber \
 
 此外，OpenChamber 需要通过环境变量 `OPENCODE_SKIP_START=true` 指示不要启动内置的 OpenCode 实例，而是连接到外部的 OpenCode 服务端（通过 `OPENCODE_HOST=http://opencode:4096` 指定地址）。
 
+> [!TIP]
+> 当 OpenChamber 连接外部 OpenCode 服务端（`OPENCODE_SKIP_START=true` + `OPENCODE_HOST`）时，建议在**两个**服务上显式配置相同的 `OPENCODE_SERVER_PASSWORD`（如自定义过用户名，再配上相同的 `OPENCODE_SERVER_USERNAME`）。OpenChamber 会用这组凭据对上游发起 HTTP Basic 鉴权；缺失或不一致时，`/api/*`（包括 `/api/event` 事件流）会返回 `401`。
+>
+> OpenCode 曾出现过在未设置 `OPENCODE_SERVER_PASSWORD` 时，`opencode serve` 强制使用一个随机 Basic 鉴权密码的非预期行为（参见 [anomalyco/opencode#50370](https://github.com/anomalyco/opencode/issues/50370)；官方文档将该密码描述为可选、未设置即不鉴权：[Server](https://opencode.ai/docs/server/#authentication)、[Web](https://opencode.ai/docs/web/)），可能使组合部署变得不稳定；在两个服务上配置同一密码可规避该情况。
+
 ## 配置参考
 
 ### 环境变量
@@ -265,7 +272,7 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 
 | 环境变量                   | 说明                                                   | 默认值     |
 | -------------------------- | ------------------------------------------------------ | ---------- |
-| `OPENCODE_SERVER_PASSWORD` | 设置访问 OpenCode 基本认证密码，为空时允许无密码访问。 |            |
+| `OPENCODE_SERVER_PASSWORD` | 设置访问 OpenCode 的 HTTP Basic 鉴权密码。OpenCode 2.0.x 下为空时曾被观察到 `serve` 会生成随机密码并强制鉴权（上游非预期行为），外部访问请显式设置。 | |
 | `OPENCODE_SERVER_USERNAME` | 设置访问 OpenCode 基本认证用户名。                     | `opencode` |
 
 **OpenChamber**
@@ -276,6 +283,8 @@ OpenCode / OpenChamber 镜像支持通过环境变量进行配置，以下是一
 | `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` | 允许局域网内未认证访问 OpenChamber 网页界面。<br/> **建议只在受信任的网络环境中启用。**                                       | `false` |
 | `OPENCODE_SKIP_START`                   | 在 OpenChamber 中跳过启动内置的 OpenCode 实例，改为连接到外部 OpenCode 服务端。需要同时指定 `OPENCODE_HOST`。                 | `false` |
 | `OPENCODE_HOST`                         | 指定外部 OpenCode 服务端的地址（如 `http://opencode:4096`）。                                                                 |         |
+| `OPENCODE_SERVER_PASSWORD`              | 使用 `OPENCODE_SKIP_START`/`OPENCODE_HOST` 连接外部 OpenCode 时的 HTTP Basic 鉴权密码。需与 OpenCode 服务一致，否则 `/api/*` 会返回 `401`。 |         |
+| `OPENCODE_SERVER_USERNAME`              | 连接外部 OpenCode 时的 HTTP Basic 鉴权用户名。需与 OpenCode 服务一致。                                                        | `opencode` |
 
 以下环境变量不属于上游支持的配置选项，而是镜像侧提供的功能选项，对所有镜像有效：
 
