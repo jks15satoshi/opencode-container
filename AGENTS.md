@@ -9,7 +9,7 @@ Docker packaging for **OpenCode** and **OpenChamber** via a single multi-stage `
 | `Dockerfile` | Multi-stage build; base → opencode, openchamber stages |
 | `entrypoint.sh` | Single entrypoint for both opencode and openchamber, driven by `APP` env var |
 | `.github/workflows/build.yml` | Push-to-master CI: distinguishes Renovate (build affected image on version bump) vs non-Renovate (granular stage detection: entrypoint/base → both, single stage → single image, rev builds). `workflow_dispatch` supports per-image boolean inputs |
-| `.github/workflows/update-checksums.yml` | Renovate PR CI: recompute SHA-256, sync OPENCODE_VERSION to latest, auto-commit |
+| `.github/workflows/update-checksums.yml` | Renovate branch CI (push to `renovate/**`): recompute SHA-256, sync OPENCODE_VERSION to latest, auto-commit |
 | `.github/release.yml` | GitHub Release notes template — auto-generates sections by PR label (breaking, enhancement, bug, dependency, etc.) |
 | `.github/scripts/update-checksums.sh` | Fetches npm tarballs, computes SHA-256, updates Dockerfile ARGs |
 | `renovate.json` | Two standalone regex `customManagers` for version bump PRs |
@@ -70,7 +70,7 @@ Each creates an independent PR with `platformAutomerge: true`.
 
 ### Update flow
 
-1. Renovate opens PR bumping a version ARG → `update-checksums.yml` triggers (only when `github.actor == 'renovate[bot]'`)
+1. Renovate pushes a `renovate/**` branch bumping a version ARG → `update-checksums.yml` triggers (only when `github.actor == 'renovate[bot]'`)
 2. `update-checksums.sh` fetches the npm tarball for the bumped version, updates its SHA256, then **always** syncs `OPENCODE_VERSION` to npm latest (unconditional, after both package checks)
 3. Auto-commits via `stefanzweifel/git-auto-commit-action` → PR auto-merges
 4. `build.yml` on push to master: detects Renovate commit → builds only the image whose version ARG changed (regular build). Non-Renovate commit → granular stage detection triggers rev builds for affected images only
@@ -87,7 +87,7 @@ Each creates an independent PR with `platformAutomerge: true`.
 ## CI pipelines
 
 - **`build.yml`**: Runs on push to `master` (and `workflow_dispatch`). The `detect` job: (1) parses version ARGs from Dockerfile with `awk -F= '/^ARG OPENCODE_VERSION=/{print $2}'`, (2) identifies whether the commit is from Renovate (`head_commit.author.username` / `committer.username`), (3) for Renovate: diffs which version ARG changed → regular build of only that image, (4) for non-Renovate: checks `entrypoint.sh` changes, then parses `git diff` hunks against Dockerfile stage boundaries (`FROM base AS opencode` / `FROM base AS openchamber`) to determine which stages were touched → rev build of affected images. `workflow_dispatch` honors per-image boolean inputs (`build_opencode` / `build_openchamber`). Builds with `docker buildx` for `linux/amd64,linux/arm64`, pushes to `ghcr.io`. Creates `opencode/v{ver}` / `openchamber/v{ver}` (or `-rev.{N}`) git tag + GitHub Release. **The `detect` job parses version ARGs and stage boundaries from the Dockerfile — changing the ARG format/position or stage naming will break CI.**
-- **`update-checksums.yml`**: Runs on `pull_request` (`opened` / `synchronize`) only when `github.actor == 'renovate[bot]'`. Force-pushes to Renovate PRs re-trigger it. Commits with `stefanzweifel/git-auto-commit-action` (user `opencode-checksum-bot`).
+- **`update-checksums.yml`**: Runs on `push` to `renovate/**` branches only when `github.actor == 'renovate[bot]'`. Renovate force-pushes to the same branch re-trigger it. Commits with `stefanzweifel/git-auto-commit-action` (user `renovate[bot]`).
 
 ## Runtime security model
 
