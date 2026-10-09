@@ -1,7 +1,8 @@
 name: Update dependency checksums
 on:
-  pull_request_target:
-    types: [opened, synchronize]
+  push:
+    branches:
+      - 'renovate/**'
 
 jobs:
   update:
@@ -9,12 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Fetch and update SHA256 checksums
         run: .github/scripts/update-checksums.sh Dockerfile
