@@ -88,8 +88,8 @@ ENV SYSTEM_USER=opencode
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=@opencode/cli
-ARG OPENCODE_VERSION=2.0.28
-ARG OPENCODE_SHA256=088d38127c529232164381213718f91652450baf3f65cfd380a4e84fd1a79245
+ARG OPENCODE_VERSION=2.0.29
+ARG OPENCODE_SHA256=08451aeeca503b0ceb1b45a0b8db8227ebe0e5b12017c4a7d37b7f45040cfce1
 
 # ============================================
 # Stage: OpenCode
