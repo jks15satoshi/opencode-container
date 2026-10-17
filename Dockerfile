@@ -89,7 +89,7 @@ ENV SYSTEM_USER=opencode
 # ============================================
 # renovate: datasource=npm depName=@opencode/cli
 ARG OPENCODE_VERSION=2.0.32
-ARG OPENCODE_SHA256=ede689ac94e95833a0d2c08216cdc658ad27bb4c551bbc601ee0832d546938d2
+ARG OPENCODE_SHA256=3395134eec1cf24f91e8d2c660843a851e933794172a13c2507d9a9805ed5760
 
 # ============================================
 # Stage: OpenCode
