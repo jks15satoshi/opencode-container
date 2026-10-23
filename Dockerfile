@@ -6,9 +6,9 @@
 FROM node:26-trixie-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS base
 
 # renovate: datasource=npm depName=bun
-ARG BUN_VERSION=1.4.3
-ARG BUN_SHA256_AMD64=3e730528d89775f03f87f05c06787c4df4099d0a37f3f252e7b829cb23816e18
-ARG BUN_SHA256_ARM64=efa9813da5ed72423bf847f916e8d2c47c0d776add972354026a75e10da9aa21
+ARG BUN_VERSION=1.4.4
+ARG BUN_SHA256_AMD64=bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c
+ARG BUN_SHA256_ARM64=baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e
 
 # Install common agent tools / dev dependencies + gosu for privilege dropping
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -88,8 +88,8 @@ ENV SYSTEM_USER=opencode
 # Global build arguments
 # ============================================
 # renovate: datasource=npm depName=@opencode/cli
-ARG OPENCODE_VERSION=2.1.2
-ARG OPENCODE_SHA256=9d72f20a50d8c17fee7f49b319852d97fcc7066b0d96e1e5257fb8649880d458
+ARG OPENCODE_VERSION=2.1.3
+ARG OPENCODE_SHA256=db3ad063860ed9c67d090ccd7668415a1aa9af0ead55860dd7148db46805ca0a
 
 # ============================================
 # Stage: OpenCode
